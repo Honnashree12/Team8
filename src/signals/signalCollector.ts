@@ -44,12 +44,15 @@ setInterval(() => {
 
   if (recent.length >= 2) {
     const threshold = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
-    const wentDown = currentY > recent[0].y;
-    const nowGoingUp = currentY < lastScrollY - threshold;
+    const firstPosition = recent[0];
+    if (firstPosition) {
+      const wentDown = currentY > firstPosition.y;
+      const nowGoingUp = currentY < lastScrollY - threshold;
 
-    if (!wentDown && nowGoingUp) {
-      signals.regressionCount++;
-      console.log(`[SignalCollector] 🔄 Regression! Total: ${signals.regressionCount}`);
+      if (!wentDown && nowGoingUp) {
+        signals.regressionCount++;
+        console.log(`[SignalCollector] 🔄 Regression! Total: ${signals.regressionCount}`);
+      }
     }
   }
 
