@@ -1,0 +1,19 @@
+{
+  "name": "dyslexia-extension",
+  "version": "1.0.0",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --check server/index.js && node --check background.js && node --check content.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
