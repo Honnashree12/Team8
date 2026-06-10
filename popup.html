@@ -1,14 +1,596 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DysAssist</title>
-    <script type="module" crossorigin src="/popup.js"></script>
-    <link rel="modulepreload" crossorigin href="/chunks/profileStore-BXxnwjb_.js">
-    <link rel="stylesheet" crossorigin href="/assets/popup-iHCD_uOU.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DysAssist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Deep Dark Dashboard Theme */
+    @font-face {
+      font-family: 'OpenDyslexic';
+      src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/dist/OpenDyslexic-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      margin: 0;
+      width: 320px;
+      background-color: #0d0f17;
+      color: #ffffff;
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      box-sizing: border-box;
+      transition: font-family 0.15s ease;
+    }
+
+    body.font-lexend {
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body.font-opendyslexic {
+      font-family: 'OpenDyslexic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    #popup-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .logo-icon {
+      font-size: 20px;
+    }
+
+    .logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Status Card Badge */
+    .status-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #0082f0;
+    }
+
+    /* Master Toggle Group */
+    .master-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .master-toggle-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Sleek Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #1e293b;
+      transition: .25s;
+      border-radius: 22px;
+      border: 1px solid #334155;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: #0082f0;
+      border-color: #0082f0;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    /* Reading Profiles Row */
+    .cards-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .mode-card {
+      background: #161925;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-card:hover {
+      background: #1c2030;
+      border-color: #334155;
+    }
+
+    .mode-card.active {
+      border-color: #0082f0;
+      background: rgba(0, 130, 240, 0.08);
+    }
+
+    .mode-emoji {
+      font-size: 18px;
+    }
+
+    .mode-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: #94a3b8;
+      line-height: 1.2;
+    }
+
+    .mode-card.active .mode-label {
+      color: #ffffff;
+    }
+
+    /* Font Selection Cards */
+    .font-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .font-card {
+      background: #161925;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .font-card:hover {
+      background: #1c2030;
+      border-color: #334155;
+    }
+
+    .font-card.active {
+      border-color: #0082f0;
+      background: rgba(0, 130, 240, 0.08);
+    }
+
+    .font-preview {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .font-name-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .font-name {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .font-sub {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    .font-lexend {
+      font-family: 'Lexend', sans-serif;
+    }
+
+    .font-opendyslexic {
+      font-family: 'OpenDyslexic', sans-serif;
+    }
+
+    /* Sliders Card Group */
+    .sliders-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .slider-label {
+      color: #cbd5e1;
+    }
+
+    .slider-value {
+      color: #0082f0;
+      background: rgba(0, 130, 240, 0.12);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    /* Custom Styled Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 9999px;
+      outline: none;
+      margin: 6px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0082f0;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0, 130, 240, 0.4);
+      border: 2px solid #0d0f17;
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* Color Overlay Selector Card */
+    .overlay-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .overlay-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .overlay-main-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .overlay-sub-title {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    .overlay-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid #1e293b;
+      padding-top: 10px;
+      transition: all 0.25s ease;
+    }
+
+    .overlay-content.hidden {
+      display: none;
+    }
+
+    .swatches-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .swatch-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .swatch-btn:hover {
+      transform: scale(1.15);
+    }
+
+    .swatch-btn.active {
+      border-color: #0082f0;
+      box-shadow: 0 0 6px rgba(0, 130, 240, 0.4);
+    }
+
+    .swatch-check {
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    /* Footer Row */
+    .footer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .footer-btn {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .footer-btn-reset {
+      color: #ef4444;
+      flex-grow: 1;
+    }
+
+    .footer-btn-reset:hover {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .footer-btn-settings {
+      color: #cbd5e1;
+      width: 32px;
+      padding: 8px 0;
+    }
+
+    .footer-btn-settings:hover {
+      background: #1c2030;
+      border-color: #334155;
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body class="font-lexend">
+  <div id="popup-container">
+
+    <!-- Header Section -->
+    <div class="header">
+      <div class="logo-section" id="open-onboarding" title="Go to onboarding">
+        <span class="logo-icon">📖</span>
+        <span class="logo-title">DysAssist</span>
+      </div>
+      <div class="header-controls">
+        <div class="status-card" id="difficulty-badge">Score: --</div>
+        <div class="master-toggle-group">
+          <span class="master-toggle-label">Active</span>
+          <label class="switch">
+            <input type="checkbox" id="master-toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading Profiles Section -->
+    <div>
+      <div class="section-title">Reading Profile</div>
+      <div class="cards-row">
+        <div class="mode-card" id="card-dyslexic">
+          <span class="mode-emoji">🧠</span>
+          <span class="mode-label">Full Assist</span>
+        </div>
+        <div class="mode-card" id="card-occasional">
+          <span class="mode-emoji">📚</span>
+          <span class="mode-label">Smart Help</span>
+        </div>
+        <div class="mode-card" id="card-passive">
+          <span class="mode-emoji">👀</span>
+          <span class="mode-label">Passive</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Font Selection Section -->
+    <div>
+      <div class="section-title">Reading Font</div>
+      <div class="font-row">
+        <div class="font-card" id="font-lexend">
+          <span class="font-preview font-lexend">Aa</span>
+          <div class="font-name-col">
+            <span class="font-name font-lexend">Lexend</span>
+            <span class="font-sub font-lexend">Primary</span>
+          </div>
+        </div>
+        <div class="font-card" id="font-opendyslexic">
+          <span class="font-preview font-opendyslexic">Aa</span>
+          <div class="font-name-col">
+            <span class="font-name font-opendyslexic">OpenDys</span>
+            <span class="font-sub font-opendyslexic">Secondary</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typography Sliders Section -->
+    <div class="sliders-card">
+      <!-- Letter Spacing -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Letter Spacing</span>
+          <span class="slider-value" id="letter-spacing-val">Normal</span>
+        </div>
+        <input type="range" id="letter-spacing-slider" min="0" max="0.15" step="0.01" value="0">
+      </div>
+      <!-- Line Height -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Line Height</span>
+          <span class="slider-value" id="line-height-val">Normal</span>
+        </div>
+        <input type="range" id="line-height-slider" min="1.0" max="2.5" step="0.1" value="1.4">
+      </div>
+    </div>
+
+    <!-- Color Overlay Section -->
+    <div class="overlay-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Overlay Tint</span>
+          <span class="overlay-sub-title">Reduce contrast and eye strain</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="overlay-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="overlay-content">
+        <!-- Color Swatches -->
+        <div class="swatches-row">
+          <button class="swatch-btn" id="swatch-none" style="background-color: #ffffff;" title="No Tint"></button>
+          <button class="swatch-btn" id="swatch-cream" style="background-color: #fdf6e3;" title="Cream"></button>
+          <button class="swatch-btn" id="swatch-blue" style="background-color: #e8f4fd;" title="Sky Blue"></button>
+          <button class="swatch-btn" id="swatch-green" style="background-color: #edfaf1;" title="Mint Green"></button>
+          <button class="swatch-btn" id="swatch-yellow" style="background-color: #fefce8;" title="Warm Yellow"></button>
+        </div>
+        <!-- Opacity Slider -->
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Tint Strength</span>
+            <span class="slider-value" id="opacity-val" style="font-size: 9px;">18%</span>
+          </div>
+          <input type="range" id="opacity-slider" min="0.05" max="0.50" step="0.01" value="0.18">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reader Mode Card Section -->
+    <div class="overlay-card" id="reader-mode-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Distraction-free Reader</span>
+          <span class="overlay-sub-title">Clean reading layout strips ads</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="reader-mode-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Footer Buttons -->
+    <div class="footer-row">
+      <button class="footer-btn footer-btn-reset" id="reset-btn">
+        <span>🗑️</span>
+        <span>Reset Settings</span>
+      </button>
+      <button class="footer-btn footer-btn-settings" id="settings-btn" title="Open Settings Panel">
+        <span>⚙️</span>
+      </button>
+    </div>
+
+  </div>
+  <script type="module" src="/popup.js"></script>
+</body>
+
 </html>

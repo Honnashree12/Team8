@@ -43,8 +43,11 @@ setInterval(() => {
   );
 
   if (recent.length >= 2) {
+    const firstRecent = recent[0];
+    if (!firstRecent) return;
+
     const threshold = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
-    const wentDown = currentY > recent[0].y;
+    const wentDown = currentY > firstRecent.y;
     const nowGoingUp = currentY < lastScrollY - threshold;
 
     if (!wentDown && nowGoingUp) {

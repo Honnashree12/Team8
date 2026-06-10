@@ -4,7 +4,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --check server/index.js && node --check background.js && node --check content.js"
+    "test": "node --check server/index.js && node --check background.js && node --check content.js && node tests/server-smoke.js"
   },
   "keywords": [],
   "author": "",

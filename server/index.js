@@ -10,11 +10,25 @@ const requestTimeoutMs = Number(process.env.REQUEST_TIMEOUT_MS || 12000);
 const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
 const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 30);
 const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const useGemini = process.env.USE_GEMINI === "true";
+const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 const requestBuckets = new Map();
 
 app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.get("origin");
+  const allowedOrigin = getAllowedOrigin(origin);
+
+  if (origin && !allowedOrigin) {
+    res.status(403).json({ error: "Origin is not allowed." });
+    return;
+  }
+
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Vary", "Origin");
+  }
+
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   if (req.method === "OPTIONS") {
@@ -26,20 +40,24 @@ app.use((req, res, next) => {
 app.use(rateLimit);
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    mode: useGemini ? "gemini" : "mock",
+    geminiConfigured: Boolean(process.env.GEMINI_API_KEY)
+  });
 });
 
 app.post("/simplify", async (req, res, next) => {
   try {
     const text = normalizeText(req.body?.text);
-    const result = await callGemini([
+    const result = useGemini ? await callGemini([
       "Rewrite the text in dyslexia-friendly plain language.",
       "Keep the original meaning, use shorter sentences, and return only the rewritten text.",
       "",
       text
-    ].join("\n"));
+    ].join("\n")) : mockSimplify(text);
 
-    res.json({ result });
+    res.json({ result, mocked: !useGemini });
   } catch (error) {
     next(error);
   }
@@ -49,14 +67,14 @@ app.post("/define", async (req, res, next) => {
   try {
     const term = normalizeText(req.body?.term || req.body?.text, 200);
     const context = req.body?.context ? normalizeText(req.body.context, 1200) : "";
-    const result = await callGemini([
+    const result = useGemini ? await callGemini([
       "Define the term for a dyslexic reader.",
       "Use simple words, one short example, and return only the definition.",
       context ? `Context: ${context}` : "",
       `Term: ${term}`
-    ].filter(Boolean).join("\n"));
+    ].filter(Boolean).join("\n")) : mockDefine(term, context);
 
-    res.json({ result });
+    res.json({ result, mocked: !useGemini });
   } catch (error) {
     next(error);
   }
@@ -69,9 +87,15 @@ app.use((error, _req, res, _next) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`DysAssist Gemini proxy listening on http://127.0.0.1:${port}`);
-});
+function startServer() {
+  return app.listen(port, () => {
+    console.log(`DysAssist Gemini proxy listening on http://127.0.0.1:${port}`);
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
 
 function normalizeText(value, maxLength = 8000) {
   if (typeof value !== "string" || !value.trim()) {
@@ -103,6 +127,46 @@ function loadEnvFile() {
       process.env[key] = value;
     }
   }
+}
+
+function parseAllowedOrigins(value) {
+  if (!value) {
+    return {
+      exact: new Set(["http://127.0.0.1:8787", "http://localhost:8787"]),
+      allowChromeExtensions: true
+    };
+  }
+
+  const origins = value.split(",").map(origin => origin.trim()).filter(Boolean);
+  return {
+    exact: new Set(origins.filter(origin => origin !== "chrome-extension://*")),
+    allowChromeExtensions: origins.includes("chrome-extension://*")
+  };
+}
+
+function getAllowedOrigin(origin) {
+  if (!origin) return null;
+  if (allowedOrigins.exact.has(origin)) return origin;
+  if (allowedOrigins.allowChromeExtensions && origin.startsWith("chrome-extension://")) {
+    return origin;
+  }
+  return null;
+}
+
+function mockSimplify(text) {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length === 0) return text;
+  return sentences.slice(0, 3).join(" ");
+}
+
+function mockDefine(term, context) {
+  const trimmedTerm = term.replace(/[.?!:;]+$/g, "");
+  const contextHint = context ? " The meaning can depend on the page context." : "";
+  return `${trimmedTerm} means an important word or idea in this text.${contextHint}`;
 }
 
 function rateLimit(req, res, next) {
@@ -194,3 +258,12 @@ async function callGemini(prompt) {
     clearTimeout(timeout);
   }
 }
+
+module.exports = {
+  app,
+  getAllowedOrigin,
+  mockDefine,
+  mockSimplify,
+  normalizeText,
+  startServer
+};

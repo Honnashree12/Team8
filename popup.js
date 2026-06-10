@@ -1,1 +1,353 @@
-import{u as i,r as o,j as e,c,R as d}from"./chunks/profileStore-BXxnwjb_.js";const x={declared_dyslexic:{label:"Full assistance",emoji:"🧠",color:"text-purple-700 bg-purple-100"},occasional:{label:"Smart mode",emoji:"📚",color:"text-blue-700 bg-blue-100"},fully_passive:{label:"Passive mode",emoji:"👀",color:"text-green-700 bg-green-100"}};function m({score:s}){const t=Math.round(s*100),r=s<.3?"bg-green-400":s<.5?"bg-yellow-400":s<.7?"bg-orange-400":"bg-red-400",l=s<.3?"Reading fine":s<.5?"Mild friction":s<.7?"Struggling":"High difficulty";return e.jsxs("div",{className:"mb-4",children:[e.jsxs("div",{className:"flex justify-between items-center mb-1",children:[e.jsx("span",{className:"text-xs font-medium text-gray-600",children:"Difficulty score"}),e.jsx("span",{className:"text-xs font-semibold text-gray-800",children:l})]}),e.jsx("div",{className:"h-2 bg-gray-100 rounded-full overflow-hidden",children:e.jsx("div",{className:`h-full rounded-full transition-all ${r}`,style:{width:`${t}%`}})}),e.jsxs("div",{className:"flex justify-between mt-0.5",children:[e.jsx("span",{className:"text-xs text-gray-400",children:"0"}),e.jsxs("span",{className:"text-xs font-medium text-gray-600",children:[t,"%"]}),e.jsx("span",{className:"text-xs text-gray-400",children:"100"})]})]})}function b(){const{profile:s,isLoading:t,loadProfile:r,resetProfile:l}=i();if(o.useEffect(()=>{r()},[r]),t)return e.jsx("div",{className:"w-72 p-6 flex items-center justify-center",children:e.jsx("div",{className:"animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full"})});if(!s)return e.jsxs("div",{className:"w-72 p-6 text-center",children:[e.jsx("p",{className:"text-sm text-gray-500 mb-4",children:"No profile found."}),e.jsx("button",{onClick:()=>chrome.tabs.create({url:chrome.runtime.getURL("onboarding.html")}),className:"w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors",children:"Complete setup →"})]});const a=x[s.mode];return e.jsxs("div",{className:"w-72 bg-white",children:[e.jsxs("div",{className:"px-4 py-3 border-b border-gray-100 flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("span",{className:"text-lg",children:"📖"}),e.jsx("span",{className:"font-bold text-gray-900 text-sm font-lexend",children:"DysAssist"})]}),e.jsxs("span",{className:`text-xs px-2 py-0.5 rounded-full font-medium ${a.color}`,children:[a.emoji," ",a.label]})]}),e.jsxs("div",{className:"px-4 py-4",children:[e.jsx(m,{score:s.difficultyScore}),e.jsxs("div",{className:"mb-4",children:[e.jsx("h3",{className:"text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2",children:"Active adaptations"}),s.mode==="declared_dyslexic"?e.jsx("div",{className:"space-y-1.5",children:[{label:`Font: ${s.preferences.font}`,icon:"🔤"},{label:`Line height: ${s.preferences.lineHeight}`,icon:"↕️"},{label:`Letter spacing: ${s.preferences.letterSpacing}`,icon:"↔️"},{label:`Tint: ${s.preferences.backgroundTint}`,icon:"🎨"}].map(n=>e.jsxs("div",{className:"flex items-center gap-2 text-xs text-gray-700",children:[e.jsx("span",{children:n.icon}),e.jsx("span",{className:"capitalize",children:n.label}),e.jsx("span",{className:"ml-auto w-2 h-2 rounded-full bg-green-400"})]},n.label))}):e.jsx("p",{className:"text-xs text-gray-400 italic",children:"Monitoring passively — no adaptations applied yet."})]}),e.jsx("div",{className:"bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4",children:e.jsxs("p",{className:"text-xs text-amber-700",children:[e.jsx("strong",{children:"Week 1 build:"})," Signal collection and intervention engine are coming in Week 2–3. Dashboard and settings will expand then."]})}),e.jsxs("div",{className:"flex gap-2",children:[e.jsx("button",{onClick:()=>chrome.tabs.create({url:chrome.runtime.getURL("onboarding.html")}),className:"flex-1 text-xs border border-gray-200 hover:border-brand-300 text-gray-600 hover:text-brand-700 py-2 rounded-lg transition-colors",children:"⚙️ Settings"}),e.jsx("button",{onClick:()=>{confirm("Reset your profile? This cannot be undone.")&&l()},className:"flex-1 text-xs border border-red-100 hover:border-red-300 text-red-400 hover:text-red-600 py-2 rounded-lg transition-colors",children:"🗑️ Reset profile"})]})]}),e.jsx("div",{className:"px-4 py-2 border-t border-gray-50 text-center",children:e.jsx("p",{className:"text-xs text-gray-400",children:"All data is stored locally on your device"})})]})}c.createRoot(document.getElementById("root")).render(e.jsx(d.StrictMode,{children:e.jsx(b,{})}));
+const PROFILE_KEY = "userProfile";
+
+// DOM Elements
+const masterToggle = document.getElementById("master-toggle");
+const difficultyBadge = document.getElementById("difficulty-badge");
+
+const cardDyslexic = document.getElementById("card-dyslexic");
+const cardOccasional = document.getElementById("card-occasional");
+const cardPassive = document.getElementById("card-passive");
+
+const fontLexend = document.getElementById("font-lexend");
+const fontOpenDyslexic = document.getElementById("font-opendyslexic");
+
+const letterSpacingSlider = document.getElementById("letter-spacing-slider");
+const letterSpacingVal = document.getElementById("letter-spacing-val");
+
+const lineHeightSlider = document.getElementById("line-height-slider");
+const lineHeightVal = document.getElementById("line-height-val");
+
+const overlayToggle = document.getElementById("overlay-toggle");
+const overlayContent = document.getElementById("overlay-content");
+const opacitySlider = document.getElementById("opacity-slider");
+const opacityVal = document.getElementById("opacity-val");
+
+const readerModeToggle = document.getElementById("reader-mode-toggle");
+
+const resetBtn = document.getElementById("reset-btn");
+const settingsBtn = document.getElementById("settings-btn");
+const openOnboardingBtn = document.getElementById("open-onboarding");
+
+const swatches = {
+  none: document.getElementById("swatch-none"),
+  cream: document.getElementById("swatch-cream"),
+  blue: document.getElementById("swatch-blue"),
+  green: document.getElementById("swatch-green"),
+  yellow: document.getElementById("swatch-yellow")
+};
+
+let currentProfile = null;
+
+// Helpers to get/set Chrome local storage
+function getProfile() {
+  return new Promise(resolve => {
+    if (typeof chrome !== "undefined" && chrome.storage) {
+      chrome.storage.local.get(PROFILE_KEY, result => {
+        resolve(result[PROFILE_KEY] ?? null);
+      });
+    } else {
+      const local = localStorage.getItem(PROFILE_KEY);
+      resolve(local ? JSON.parse(local) : null);
+    }
+  });
+}
+
+function saveProfile(profile) {
+  return new Promise(resolve => {
+    if (typeof chrome !== "undefined" && chrome.storage) {
+      chrome.storage.local.set({ [PROFILE_KEY]: profile }, () => {
+        resolve();
+      });
+    } else {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      resolve();
+    }
+  });
+}
+
+// Initializer
+async function init() {
+  currentProfile = await getProfile();
+  
+  if (!currentProfile) {
+    // Fallback default profile structure
+    currentProfile = {
+      version: 1,
+      mode: "declared_dyslexic",
+      difficultyScore: 0.8,
+      preferences: {
+        font: "lexend",
+        backgroundTint: "cream",
+        lineHeight: "1.7",
+        letterSpacing: "0.045em",
+        overlayOpacity: 0.18,
+        applyImmediately: true,
+        readingModeEnabled: false,
+        overlayToggleOn: true
+      },
+      domainSettings: [],
+      interventionHistory: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await saveProfile(currentProfile);
+  }
+
+  render(currentProfile);
+}
+
+// Render values into DOM
+function render(profile) {
+  const prefs = profile.preferences || {};
+
+  // Master Switch
+  masterToggle.checked = !!prefs.applyImmediately;
+
+  // Status Badge
+  const scorePct = Math.round(profile.difficultyScore * 100);
+  difficultyBadge.textContent = `Score: ${scorePct}%`;
+
+  // Profile cards
+  cardDyslexic.classList.remove("active");
+  cardOccasional.classList.remove("active");
+  cardPassive.classList.remove("active");
+  
+  if (profile.mode === "declared_dyslexic") cardDyslexic.classList.add("active");
+  else if (profile.mode === "occasional") cardOccasional.classList.add("active");
+  else if (profile.mode === "fully_passive") cardPassive.classList.add("active");
+
+  // Font cards
+  fontLexend.classList.remove("active");
+  fontOpenDyslexic.classList.remove("active");
+  
+  if (prefs.font === "opendyslexic") {
+    fontOpenDyslexic.classList.add("active");
+    document.body.className = "font-opendyslexic";
+  } else {
+    fontLexend.classList.add("active");
+    document.body.className = "font-lexend";
+  }
+
+  // Letter Spacing Slider
+  let lsNum = 0;
+  if (prefs.letterSpacing === "normal") lsNum = 0;
+  else if (prefs.letterSpacing === "wide") lsNum = 0.045;
+  else if (prefs.letterSpacing === "wider") lsNum = 0.075;
+  else {
+    const parsed = parseFloat(prefs.letterSpacing);
+    lsNum = isNaN(parsed) ? 0 : parsed;
+  }
+  letterSpacingSlider.value = lsNum;
+  letterSpacingVal.textContent = lsNum === 0 ? "Normal" : `+${lsNum}em`;
+
+  // Line Height Slider
+  let lhNum = 1.4;
+  if (prefs.lineHeight === "normal") lhNum = 1.4;
+  else if (prefs.lineHeight === "relaxed") lhNum = 1.7;
+  else if (prefs.lineHeight === "loose") lhNum = 1.9;
+  else {
+    const parsed = parseFloat(prefs.lineHeight);
+    lhNum = isNaN(parsed) ? 1.4 : parsed;
+  }
+  lineHeightSlider.value = lhNum;
+  lineHeightVal.textContent = `${lhNum}x`;
+
+  // Overlay Tint Toggle (persist card open/close state separately from "none" color selection)
+  const isOverlayOn = prefs.overlayToggleOn !== undefined ? prefs.overlayToggleOn : (prefs.backgroundTint && prefs.backgroundTint !== "none");
+  overlayToggle.checked = isOverlayOn;
+  
+  if (isOverlayOn) {
+    overlayContent.classList.remove("hidden");
+  } else {
+    overlayContent.classList.add("hidden");
+  }
+
+  // Color Swatches Selection State
+  Object.entries(swatches).forEach(([tint, el]) => {
+    if (!el) return;
+    el.classList.remove("active");
+    const check = el.querySelector(".swatch-check");
+    if (check) check.remove();
+  });
+
+  const activeSwatch = swatches[prefs.backgroundTint || "none"];
+  if (activeSwatch) {
+    activeSwatch.classList.add("active");
+    const checkEl = document.createElement("span");
+    checkEl.className = "swatch-check";
+    checkEl.textContent = "✓";
+    checkEl.style.color = (prefs.backgroundTint === "none" || prefs.backgroundTint === "cream" || prefs.backgroundTint === "yellow") ? "#0f172a" : "#ffffff";
+    activeSwatch.appendChild(checkEl);
+  }
+
+  // Opacity Slider
+  const opacity = prefs.overlayOpacity !== undefined ? prefs.overlayOpacity : 0.18;
+  opacitySlider.value = opacity;
+  opacityVal.textContent = `${Math.round(opacity * 100)}%`;
+
+  // Reader Mode Switch
+  readerModeToggle.checked = !!prefs.readingModeEnabled;
+}
+
+// Event Listeners
+masterToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.applyImmediately = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Mode Cards Click
+const modes = [
+  { id: "declared_dyslexic", el: cardDyslexic, score: 0.8 },
+  { id: "occasional", el: cardOccasional, score: 0.4 },
+  { id: "fully_passive", el: cardPassive, score: 0.1 }
+];
+
+modes.forEach(item => {
+  item.el.addEventListener("click", async () => {
+    currentProfile.mode = item.id;
+    currentProfile.difficultyScore = item.score;
+    currentProfile.updatedAt = new Date().toISOString();
+    await saveProfile(currentProfile);
+    render(currentProfile);
+  });
+});
+
+// Font Cards Click
+fontLexend.addEventListener("click", async () => {
+  currentProfile.preferences.font = "lexend";
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+fontOpenDyslexic.addEventListener("click", async () => {
+  currentProfile.preferences.font = "opendyslexic";
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Sliders Dragging (continuous display update)
+letterSpacingSlider.addEventListener("input", (e) => {
+  const val = parseFloat(e.target.value);
+  letterSpacingVal.textContent = val === 0 ? "Normal" : `+${val}em`;
+});
+
+letterSpacingSlider.addEventListener("change", async (e) => {
+  const val = parseFloat(e.target.value);
+  currentProfile.preferences.letterSpacing = val === 0 ? "normal" : `${val}em`;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+lineHeightSlider.addEventListener("input", (e) => {
+  lineHeightVal.textContent = `${e.target.value}x`;
+});
+
+lineHeightSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.lineHeight = e.target.value;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Overlay Tint Switch Toggle
+overlayToggle.addEventListener("change", async (e) => {
+  const isEnabled = e.target.checked;
+  currentProfile.preferences.overlayToggleOn = isEnabled;
+  if (isEnabled) {
+    overlayContent.classList.remove("hidden");
+    // Fallback if none was previously selected
+    if (!currentProfile.preferences.backgroundTint || currentProfile.preferences.backgroundTint === "none") {
+      currentProfile.preferences.backgroundTint = "cream";
+    }
+  } else {
+    overlayContent.classList.add("hidden");
+    currentProfile.preferences.backgroundTint = "none";
+  }
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Swatches Click
+Object.entries(swatches).forEach(([tint, el]) => {
+  if (!el) return;
+  el.addEventListener("click", async () => {
+    currentProfile.preferences.backgroundTint = tint;
+    currentProfile.preferences.overlayToggleOn = true;
+    currentProfile.updatedAt = new Date().toISOString();
+    await saveProfile(currentProfile);
+    render(currentProfile);
+  });
+});
+
+// Opacity Slider Drag
+opacitySlider.addEventListener("input", (e) => {
+  opacityVal.textContent = `${Math.round(e.target.value * 100)}%`;
+});
+
+opacitySlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.overlayOpacity = parseFloat(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Reader Mode Switch Click
+readerModeToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.readingModeEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Reset Button Click
+resetBtn.addEventListener("click", async () => {
+  if (confirm("Reset all settings to default?")) {
+    currentProfile = {
+      version: 1,
+      mode: "declared_dyslexic",
+      difficultyScore: 0.8,
+      preferences: {
+        font: "lexend",
+        backgroundTint: "cream",
+        lineHeight: "1.7",
+        letterSpacing: "0.045em",
+        overlayOpacity: 0.18,
+        applyImmediately: true,
+        readingModeEnabled: false,
+        overlayToggleOn: true
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await saveProfile(currentProfile);
+    render(currentProfile);
+  }
+});
+
+// Utility Redirections to Settings/Onboarding
+const openOnboarding = () => {
+  if (typeof chrome !== "undefined" && chrome.tabs) {
+    chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
+  }
+};
+
+openOnboardingBtn.addEventListener("click", openOnboarding);
+settingsBtn.addEventListener("click", openOnboarding);
+
+// Initialize popup logic on document ready
+document.addEventListener("DOMContentLoaded", init);
+
+if (typeof chrome !== "undefined" && chrome.storage) {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local" && changes.userProfile) {
+      currentProfile = changes.userProfile.newValue;
+      render(currentProfile);
+    }
+  });
+}
