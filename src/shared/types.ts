@@ -4,19 +4,10 @@
 // Honnashree and Manoj both import from here.
 // ============================================================
 
-// Which option the user picked during onboarding
 export type OnboardingMode = 'declared' | 'occasional' | 'passive';
-//   declared   = "I have dyslexia"
-//   occasional = "I sometimes struggle"
-//   passive    = "just watch me automatically"
-
-// What the user does when help is offered
 export type FeedbackType = 'accept' | 'dismiss' | 'ignore';
-
-// The 4 levels of help (mild → full)
 export type InterventionTier = 'tier1' | 'tier2' | 'tier3' | 'tier4';
 
-// Every specific type of help the system can give
 export type InterventionType =
   | 'font_switch'
   | 'letter_spacing'
@@ -29,28 +20,21 @@ export type InterventionType =
   | 'vocabulary_tooltips'
   | 'text_to_speech';
 
-// -------------------------------------------------------
-// FeatureVector — measurements from one reading session
-// -------------------------------------------------------
 export interface FeatureVector {
-  readingSpeedWPM: number;         // how fast they're reading (words per minute)
-  regressionRate: number;          // how often they scroll back to re-read
-  copyLookupFrequency: number;     // how often they copy text or look up words
-  paragraphCompletionRate: number; // did they finish reading each paragraph?
-  vocabularyDifficultyIndex: number; // how many hard/rare words are on this page
-  sessionDurationSeconds: number;  // how long they've been on this page
-  timestamp: number;               // when this was measured
-  domain: string;                  // which website (e.g. "arxiv.org")
+  readingSpeedWPM: number;
+  regressionRate: number;
+  copyLookupFrequency: number;
+  paragraphCompletionRate: number;
+  vocabularyDifficultyIndex: number;
+  sessionDurationSeconds: number;
+  timestamp: number;
+  domain: string;
 }
 
-// -------------------------------------------------------
-// UserProfile — everything we know about this user
-// Stored in chrome.storage.local, never sent anywhere
-// -------------------------------------------------------
 export interface UserProfile {
   mode: OnboardingMode;
-  initialDifficultyScore: number;   // set during onboarding (0.8 / 0.4 / 0.1)
-  currentDifficultyScore: number;   // updated after every session
+  initialDifficultyScore: number;
+  currentDifficultyScore: number;
   lastSessionScore: number;
 
   preferredFont: 'lexend' | 'openDyslexic' | 'system';
@@ -65,9 +49,6 @@ export interface UserProfile {
   lastUpdated: number;
 }
 
-// -------------------------------------------------------
-// Supporting types used inside UserProfile
-// -------------------------------------------------------
 export interface SessionSummary {
   domain: string;
   difficultyScore: number;
@@ -95,9 +76,15 @@ export interface DomainSetting {
 }
 
 // -------------------------------------------------------
-// createDefaultProfile — called during onboarding
-// Usage: const profile = createDefaultProfile('declared')
+// STORAGE_KEYS — used by featurePipeline and popup
+// Import this instead of typing the key string by hand
+// (prevents typo bugs)
 // -------------------------------------------------------
+export const STORAGE_KEYS = {
+  USER_PROFILE: 'userProfile',
+  FEATURE_VECTOR: 'lastFeatureVector',
+} as const;
+
 export function createDefaultProfile(mode: OnboardingMode): UserProfile {
   const scoreMap = { declared: 0.8, occasional: 0.4, passive: 0.1 };
 
