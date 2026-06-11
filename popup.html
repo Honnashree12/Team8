@@ -675,6 +675,62 @@
       </div>
     </div>
 
+    <!-- Text-to-Speech Card Section -->
+    <div class="overlay-card" id="tts-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Text-to-Speech</span>
+          <span class="overlay-sub-title">Read pages aloud with word highlighting</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tts-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="tts-content">
+        <!-- Voice Select -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Voice</span>
+          </div>
+          <select id="tts-voice-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="">Default Voice</option>
+          </select>
+        </div>
+        <!-- Speech Rate Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Speed</span>
+            <span class="slider-value" id="tts-rate-val" style="font-size: 9px;">1.0x</span>
+          </div>
+          <input type="range" id="tts-rate-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <!-- Speech Pitch Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Pitch</span>
+            <span class="slider-value" id="tts-pitch-val" style="font-size: 9px;">1.0</span>
+          </div>
+          <input type="range" id="tts-pitch-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <!-- Word Highlighting Toggle -->
+        <div class="overlay-header" style="margin-top: 8px; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <div class="overlay-title-group">
+            <span class="overlay-main-title" style="font-size: 10px; color: #cbd5e1;">Highlight Spoken Word</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="tts-highlight-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <!-- Test Button -->
+        <button id="tts-test-btn" class="footer-btn" style="width: 100%; margin-top: 10px; background: rgba(0, 130, 240, 0.15); border-color: rgba(0, 130, 240, 0.3); color: #0082f0;">
+          🔊 Test Speech
+        </button>
+      </div>
+    </div>
+
     <!-- Reader Mode Card Section -->
     <div class="overlay-card" id="reader-mode-card">
       <div class="overlay-header">

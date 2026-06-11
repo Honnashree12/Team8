@@ -350,6 +350,7 @@ function removeReadingTheme() {
   window.DysAssistChunker?.reset();
   window.DysAssistRuler?.disable();
   window.DysAssistFocus?.disable();
+  window.DysAssistTTS?.stop();
 }
 
 function shouldApplyReadingTheme(profile) {
@@ -599,6 +600,11 @@ async function processPage() {
     } else {
       hideReaderOverlay();
     }
+
+    // Handle Text-to-Speech Settings
+    if (profile.preferences) {
+      window.DysAssistTTS?.updateSettings(profile.preferences);
+    }
   } finally {
     isApplyingChanges = false;
     if (observer) {
@@ -640,5 +646,14 @@ observer.observe(document.documentElement, {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local" && changes.userProfile) {
     processPage();
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "TTS_TEST") {
+    const firstPara = document.querySelector("p, [data-da-chunk]");
+    if (firstPara) {
+      window.DysAssistTTS?.speak(firstPara);
+    }
   }
 });

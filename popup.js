@@ -64,6 +64,17 @@ const focusDimGroup = document.getElementById("focus-dim-group");
 const focusDimSlider = document.getElementById("focus-dim-slider");
 const focusDimVal = document.getElementById("focus-dim-val");
 
+// TTS controls
+const ttsToggle = document.getElementById("tts-toggle");
+const ttsContent = document.getElementById("tts-content");
+const ttsVoiceSelect = document.getElementById("tts-voice-select");
+const ttsRateSlider = document.getElementById("tts-rate-slider");
+const ttsRateVal = document.getElementById("tts-rate-val");
+const ttsPitchSlider = document.getElementById("tts-pitch-slider");
+const ttsPitchVal = document.getElementById("tts-pitch-val");
+const ttsHighlightToggle = document.getElementById("tts-highlight-toggle");
+const ttsTestBtn = document.getElementById("tts-test-btn");
+
 // Helpers to get/set Chrome local storage
 function getProfile() {
   return new Promise(resolve => {
@@ -121,7 +132,12 @@ async function init() {
         focusStyle: "both",
         focusBlur: 4,
         focusDimOpacity: 0.55,
-        focusTransition: 220
+        focusTransition: 220,
+        ttsEnabled: false,
+        ttsRate: 1.0,
+        ttsPitch: 1.0,
+        ttsVoiceURI: "",
+        ttsHighlight: true
       },
       domainSettings: [],
       interventionHistory: {},
@@ -145,6 +161,11 @@ async function init() {
     if (prefs.focusBlur === undefined) { prefs.focusBlur = 4; updated = true; }
     if (prefs.focusDimOpacity === undefined) { prefs.focusDimOpacity = 0.55; updated = true; }
     if (prefs.focusTransition === undefined) { prefs.focusTransition = 220; updated = true; }
+    if (prefs.ttsEnabled === undefined) { prefs.ttsEnabled = false; updated = true; }
+    if (prefs.ttsRate === undefined) { prefs.ttsRate = 1.0; updated = true; }
+    if (prefs.ttsPitch === undefined) { prefs.ttsPitch = 1.0; updated = true; }
+    if (prefs.ttsVoiceURI === undefined) { prefs.ttsVoiceURI = ""; updated = true; }
+    if (prefs.ttsHighlight === undefined) { prefs.ttsHighlight = true; updated = true; }
     if (updated) {
       currentProfile.preferences = prefs;
       await saveProfile(currentProfile);
@@ -302,6 +323,24 @@ function render(profile) {
 
   // Reader Mode Switch
   readerModeToggle.checked = !!prefs.readingModeEnabled;
+
+  // Text-to-Speech
+  ttsToggle.checked = !!prefs.ttsEnabled;
+  if (prefs.ttsEnabled) {
+    ttsContent.classList.remove("hidden");
+  } else {
+    ttsContent.classList.add("hidden");
+  }
+  const ttsRate = prefs.ttsRate ?? 1.0;
+  ttsRateSlider.value = ttsRate;
+  ttsRateVal.textContent = `${ttsRate.toFixed(1)}x`;
+
+  const ttsPitch = prefs.ttsPitch ?? 1.0;
+  ttsPitchSlider.value = ttsPitch;
+  ttsPitchVal.textContent = `${ttsPitch.toFixed(1)}`;
+
+  ttsHighlightToggle.checked = prefs.ttsHighlight !== false;
+  populateTTSVoices(prefs.ttsVoiceURI || "");
 }
 
 // Event Listeners
@@ -447,7 +486,12 @@ resetBtn.addEventListener("click", async () => {
         focusStyle: "both",
         focusBlur: 4,
         focusDimOpacity: 0.55,
-        focusTransition: 220
+        focusTransition: 220,
+        ttsEnabled: false,
+        ttsRate: 1.0,
+        ttsPitch: 1.0,
+        ttsVoiceURI: "",
+        ttsHighlight: true
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -549,6 +593,90 @@ focusDimSlider.addEventListener("change", async (e) => {
   await saveProfile(currentProfile);
   render(currentProfile);
 });
+
+// TTS Event Listeners
+ttsToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.ttsEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+ttsRateSlider.addEventListener("input", (e) => {
+  const val = parseFloat(e.target.value);
+  ttsRateVal.textContent = `${val.toFixed(1)}x`;
+});
+
+ttsRateSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.ttsRate = parseFloat(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+ttsPitchSlider.addEventListener("input", (e) => {
+  const val = parseFloat(e.target.value);
+  ttsPitchVal.textContent = `${val.toFixed(1)}`;
+});
+
+ttsPitchSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.ttsPitch = parseFloat(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+ttsHighlightToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.ttsHighlight = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+ttsVoiceSelect.addEventListener("change", async (e) => {
+  currentProfile.preferences.ttsVoiceURI = e.target.value;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+ttsTestBtn.addEventListener("click", async () => {
+  if (typeof chrome !== "undefined" && chrome.tabs) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      chrome.tabs.sendMessage(tab.id, { type: "TTS_TEST" }).catch(() => {});
+    }
+  }
+});
+
+function populateTTSVoices(selectedURI) {
+  const sel = document.getElementById("tts-voice-select");
+  if (!sel) return;
+
+  if (typeof chrome !== "undefined" && chrome.tabs && chrome.scripting) {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab) return;
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => speechSynthesis.getVoices().map(v => ({ name: v.name, uri: v.voiceURI, lang: v.lang }))
+      }, (results) => {
+        const voices = results?.[0]?.result || [];
+        if (!voices.length) return;
+
+        sel.innerHTML = '<option value="">Default Voice</option>';
+        voices
+          .filter(v => v.lang.startsWith("en"))
+          .forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v.uri;
+            opt.textContent = `${v.name} (${v.lang})`;
+            opt.selected = v.uri === selectedURI;
+            sel.appendChild(opt);
+          });
+      });
+    });
+  }
+}
 
 // Utility Redirections to Settings/Onboarding
 const openOnboarding = () => {
