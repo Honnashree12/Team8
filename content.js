@@ -347,6 +347,9 @@ function removeReadingTheme() {
       element.style.removeProperty("visibility");
       element.style.removeProperty("opacity");
     });
+  window.DysAssistChunker?.reset();
+  window.DysAssistRuler?.disable();
+  window.DysAssistFocus?.disable();
 }
 
 function shouldApplyReadingTheme(profile) {
@@ -567,6 +570,27 @@ async function processPage() {
       removeMedia();
     } else {
       restoreHiddenMedia();
+    }
+
+    // Handle Paragraph Chunking
+    if (profile.preferences.chunkingEnabled) {
+      window.DysAssistChunker?.chunkDocument(profile.preferences);
+    } else {
+      window.DysAssistChunker?.reset();
+    }
+
+    // Handle Reading Ruler
+    if (profile.preferences.rulerEnabled) {
+      window.DysAssistRuler?.enable(profile.preferences);
+    } else {
+      window.DysAssistRuler?.disable();
+    }
+
+    // Handle Focus Mode
+    if (profile.preferences.focusEnabled) {
+      window.DysAssistFocus?.enable(profile.preferences);
+    } else {
+      window.DysAssistFocus?.disable();
     }
 
     // Handle Reading Mode

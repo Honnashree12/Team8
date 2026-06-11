@@ -564,6 +564,117 @@
       </div>
     </div>
 
+    <!-- Paragraph Chunking Card Section -->
+    <div class="overlay-card" id="chunking-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Paragraph Chunking</span>
+          <span class="overlay-sub-title">Split long paragraphs into short blocks</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="chunking-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="chunking-content">
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Sentences per chunk</span>
+            <span class="slider-value" id="chunking-val" style="font-size: 9px;">3</span>
+          </div>
+          <input type="range" id="chunking-slider" min="1" max="6" step="1" value="3">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading Ruler Card Section -->
+    <div class="overlay-card" id="ruler-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Reading Ruler</span>
+          <span class="overlay-sub-title">Follows mouse to guide eye tracking</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="ruler-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="ruler-content">
+        <!-- Ruler Height Slider -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Height</span>
+            <span class="slider-value" id="ruler-height-val" style="font-size: 9px;">36px</span>
+          </div>
+          <input type="range" id="ruler-height-slider" min="10" max="100" step="2" value="36">
+        </div>
+        <!-- Ruler Opacity Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Opacity</span>
+            <span class="slider-value" id="ruler-opacity-val" style="font-size: 9px;">12%</span>
+          </div>
+          <input type="range" id="ruler-opacity-slider" min="0.05" max="0.50" step="0.01" value="0.12">
+        </div>
+        <!-- Ruler Mode Selector -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Mode</span>
+          </div>
+          <select id="ruler-mode-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="follow">Follow mouse position</option>
+            <option value="line">Snap to nearest text line</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focus Mode Card Section -->
+    <div class="overlay-card" id="focus-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Focus Mode</span>
+          <span class="overlay-sub-title">Highlight active text block and dim others</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="focus-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="focus-content">
+        <!-- Focus Style Selector -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Focus Style</span>
+          </div>
+          <select id="focus-style-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="both">Dim and Blur other blocks</option>
+            <option value="dim">Dim other blocks only</option>
+            <option value="blur">Blur other blocks only</option>
+          </select>
+        </div>
+        <!-- Focus Blur Slider -->
+        <div class="slider-group" id="focus-blur-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Blur Strength</span>
+            <span class="slider-value" id="focus-blur-val" style="font-size: 9px;">4px</span>
+          </div>
+          <input type="range" id="focus-blur-slider" min="0" max="12" step="1" value="4">
+        </div>
+        <!-- Focus Dim Opacity Slider -->
+        <div class="slider-group" id="focus-dim-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Dim Intensity</span>
+            <span class="slider-value" id="focus-dim-val" style="font-size: 9px;">55%</span>
+          </div>
+          <input type="range" id="focus-dim-slider" min="0.10" max="0.90" step="0.05" value="0.55">
+        </div>
+      </div>
+    </div>
+
     <!-- Reader Mode Card Section -->
     <div class="overlay-card" id="reader-mode-card">
       <div class="overlay-header">

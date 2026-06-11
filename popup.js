@@ -38,6 +38,32 @@ const swatches = {
 
 let currentProfile = null;
 
+// Chunker controls
+const chunkingToggle = document.getElementById("chunking-toggle");
+const chunkingContent = document.getElementById("chunking-content");
+const chunkingSlider = document.getElementById("chunking-slider");
+const chunkingVal = document.getElementById("chunking-val");
+
+// Ruler controls
+const rulerToggle = document.getElementById("ruler-toggle");
+const rulerContent = document.getElementById("ruler-content");
+const rulerHeightSlider = document.getElementById("ruler-height-slider");
+const rulerHeightVal = document.getElementById("ruler-height-val");
+const rulerOpacitySlider = document.getElementById("ruler-opacity-slider");
+const rulerOpacityVal = document.getElementById("ruler-opacity-val");
+const rulerModeSelect = document.getElementById("ruler-mode-select");
+
+// Focus Mode controls
+const focusToggle = document.getElementById("focus-toggle");
+const focusContent = document.getElementById("focus-content");
+const focusStyleSelect = document.getElementById("focus-style-select");
+const focusBlurGroup = document.getElementById("focus-blur-group");
+const focusBlurSlider = document.getElementById("focus-blur-slider");
+const focusBlurVal = document.getElementById("focus-blur-val");
+const focusDimGroup = document.getElementById("focus-dim-group");
+const focusDimSlider = document.getElementById("focus-dim-slider");
+const focusDimVal = document.getElementById("focus-dim-val");
+
 // Helpers to get/set Chrome local storage
 function getProfile() {
   return new Promise(resolve => {
@@ -83,7 +109,19 @@ async function init() {
         overlayOpacity: 0.18,
         applyImmediately: true,
         readingModeEnabled: false,
-        overlayToggleOn: true
+        overlayToggleOn: true,
+        chunkingEnabled: false,
+        chunkMaxSentences: 3,
+        rulerEnabled: false,
+        rulerHeight: 36,
+        rulerOpacity: 0.12,
+        rulerColor: "#0082f0",
+        rulerMode: "follow",
+        focusEnabled: false,
+        focusStyle: "both",
+        focusBlur: 4,
+        focusDimOpacity: 0.55,
+        focusTransition: 220
       },
       domainSettings: [],
       interventionHistory: {},
@@ -91,6 +129,26 @@ async function init() {
       updatedAt: new Date().toISOString()
     };
     await saveProfile(currentProfile);
+  } else {
+    // Ensure new properties exist on an existing profile
+    const prefs = currentProfile.preferences || {};
+    let updated = false;
+    if (prefs.chunkingEnabled === undefined) { prefs.chunkingEnabled = false; updated = true; }
+    if (prefs.chunkMaxSentences === undefined) { prefs.chunkMaxSentences = 3; updated = true; }
+    if (prefs.rulerEnabled === undefined) { prefs.rulerEnabled = false; updated = true; }
+    if (prefs.rulerHeight === undefined) { prefs.rulerHeight = 36; updated = true; }
+    if (prefs.rulerOpacity === undefined) { prefs.rulerOpacity = 0.12; updated = true; }
+    if (prefs.rulerColor === undefined) { prefs.rulerColor = "#0082f0"; updated = true; }
+    if (prefs.rulerMode === undefined) { prefs.rulerMode = "follow"; updated = true; }
+    if (prefs.focusEnabled === undefined) { prefs.focusEnabled = false; updated = true; }
+    if (prefs.focusStyle === undefined) { prefs.focusStyle = "both"; updated = true; }
+    if (prefs.focusBlur === undefined) { prefs.focusBlur = 4; updated = true; }
+    if (prefs.focusDimOpacity === undefined) { prefs.focusDimOpacity = 0.55; updated = true; }
+    if (prefs.focusTransition === undefined) { prefs.focusTransition = 220; updated = true; }
+    if (updated) {
+      currentProfile.preferences = prefs;
+      await saveProfile(currentProfile);
+    }
   }
 
   render(currentProfile);
@@ -184,6 +242,63 @@ function render(profile) {
   const opacity = prefs.overlayOpacity !== undefined ? prefs.overlayOpacity : 0.18;
   opacitySlider.value = opacity;
   opacityVal.textContent = `${Math.round(opacity * 100)}%`;
+
+  // Paragraph Chunking
+  chunkingToggle.checked = !!prefs.chunkingEnabled;
+  if (prefs.chunkingEnabled) {
+    chunkingContent.classList.remove("hidden");
+  } else {
+    chunkingContent.classList.add("hidden");
+  }
+  const chunkMax = prefs.chunkMaxSentences ?? 3;
+  chunkingSlider.value = chunkMax;
+  chunkingVal.textContent = chunkMax;
+
+  // Reading Ruler
+  rulerToggle.checked = !!prefs.rulerEnabled;
+  if (prefs.rulerEnabled) {
+    rulerContent.classList.remove("hidden");
+  } else {
+    rulerContent.classList.add("hidden");
+  }
+  const rulerHeight = prefs.rulerHeight ?? 36;
+  rulerHeightSlider.value = rulerHeight;
+  rulerHeightVal.textContent = `${rulerHeight}px`;
+
+  const rulerOpacity = prefs.rulerOpacity ?? 0.12;
+  rulerOpacitySlider.value = rulerOpacity;
+  rulerOpacityVal.textContent = `${Math.round(rulerOpacity * 100)}%`;
+
+  rulerModeSelect.value = prefs.rulerMode ?? "follow";
+
+  // Focus Mode
+  focusToggle.checked = !!prefs.focusEnabled;
+  if (prefs.focusEnabled) {
+    focusContent.classList.remove("hidden");
+  } else {
+    focusContent.classList.add("hidden");
+  }
+  const focusStyle = prefs.focusStyle ?? "both";
+  focusStyleSelect.value = focusStyle;
+
+  if (focusStyle === "dim") {
+    focusBlurGroup.classList.add("hidden");
+    focusDimGroup.classList.remove("hidden");
+  } else if (focusStyle === "blur") {
+    focusBlurGroup.classList.remove("hidden");
+    focusDimGroup.classList.add("hidden");
+  } else {
+    focusBlurGroup.classList.remove("hidden");
+    focusDimGroup.classList.remove("hidden");
+  }
+
+  const focusBlur = prefs.focusBlur ?? 4;
+  focusBlurSlider.value = focusBlur;
+  focusBlurVal.textContent = `${focusBlur}px`;
+
+  const focusDim = prefs.focusDimOpacity ?? 0.55;
+  focusDimSlider.value = focusDim;
+  focusDimVal.textContent = `${Math.round(focusDim * 100)}%`;
 
   // Reader Mode Switch
   readerModeToggle.checked = !!prefs.readingModeEnabled;
@@ -320,7 +435,19 @@ resetBtn.addEventListener("click", async () => {
         overlayOpacity: 0.18,
         applyImmediately: true,
         readingModeEnabled: false,
-        overlayToggleOn: true
+        overlayToggleOn: true,
+        chunkingEnabled: false,
+        chunkMaxSentences: 3,
+        rulerEnabled: false,
+        rulerHeight: 36,
+        rulerOpacity: 0.12,
+        rulerColor: "#0082f0",
+        rulerMode: "follow",
+        focusEnabled: false,
+        focusStyle: "both",
+        focusBlur: 4,
+        focusDimOpacity: 0.55,
+        focusTransition: 220
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -328,6 +455,99 @@ resetBtn.addEventListener("click", async () => {
     await saveProfile(currentProfile);
     render(currentProfile);
   }
+});
+
+// Paragraph Chunking Event Listeners
+chunkingToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.chunkingEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+chunkingSlider.addEventListener("input", (e) => {
+  chunkingVal.textContent = e.target.value;
+});
+
+chunkingSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.chunkMaxSentences = Number(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Reading Ruler Event Listeners
+rulerToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.rulerEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+rulerHeightSlider.addEventListener("input", (e) => {
+  rulerHeightVal.textContent = `${e.target.value}px`;
+});
+
+rulerHeightSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.rulerHeight = Number(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+rulerOpacitySlider.addEventListener("input", (e) => {
+  rulerOpacityVal.textContent = `${Math.round(e.target.value * 100)}%`;
+});
+
+rulerOpacitySlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.rulerOpacity = parseFloat(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+rulerModeSelect.addEventListener("change", async (e) => {
+  currentProfile.preferences.rulerMode = e.target.value;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+// Focus Mode Event Listeners
+focusToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.focusEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+focusStyleSelect.addEventListener("change", async (e) => {
+  currentProfile.preferences.focusStyle = e.target.value;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+focusBlurSlider.addEventListener("input", (e) => {
+  focusBlurVal.textContent = `${e.target.value}px`;
+});
+
+focusBlurSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.focusBlur = Number(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+focusDimSlider.addEventListener("input", (e) => {
+  focusDimVal.textContent = `${Math.round(e.target.value * 100)}%`;
+});
+
+focusDimSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.focusDimOpacity = parseFloat(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
 });
 
 // Utility Redirections to Settings/Onboarding

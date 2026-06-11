@@ -23,6 +23,8 @@ export type PreferredFont = 'lexend' | 'opendyslexic' | 'system';
 export type BackgroundTint = 'none' | 'cream' | 'blue' | 'green' | 'yellow';
 export type LineHeightPreference = 'normal' | 'relaxed' | 'loose';
 export type LetterSpacingPreference = 'normal' | 'wide' | 'wider';
+export type FocusStylePreference = 'dim' | 'blur' | 'both';
+export type RulerModePreference = 'follow' | 'line';
 
 export interface ReadingPreferences {
   font: PreferredFont;
@@ -32,6 +34,18 @@ export interface ReadingPreferences {
   letterSpacing: LetterSpacingPreference;
   hideMedia: boolean;
   applyImmediately?: boolean;
+  chunkingEnabled: boolean;
+  chunkMaxSentences: number;
+  rulerEnabled: boolean;
+  rulerHeight: number;
+  rulerOpacity: number;
+  rulerColor: string;
+  rulerMode: RulerModePreference;
+  focusEnabled: boolean;
+  focusStyle: FocusStylePreference;
+  focusBlur: number;
+  focusDimOpacity: number;
+  focusTransition: number;
 }
 
 export interface FeatureVector {
@@ -105,6 +119,18 @@ export function createDefaultProfile(
       letterSpacing: 'normal',
       lineHeight: 'normal',
       hideMedia: false,
+      chunkingEnabled: false,
+      chunkMaxSentences: 3,
+      rulerEnabled: false,
+      rulerHeight: 36,
+      rulerOpacity: 0.12,
+      rulerColor: '#0082f0',
+      rulerMode: 'follow',
+      focusEnabled: false,
+      focusStyle: 'both',
+      focusBlur: 4,
+      focusDimOpacity: 0.55,
+      focusTransition: 220,
       ...preferences,
     },
     sessionHistory: [],
