@@ -49,22 +49,13 @@ function startScrollTracking() {
     );
 
     if (recent.length >= 2) {
-      const threshold   = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
-      const earliestY   = recent[0]?.y ?? currentY;
-      const wasGoingDown = currentY > earliestY;
+      const firstRecent = recent[0];
+      if (!firstRecent) return;
+
+      const threshold    = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
+      const wasGoingDown = currentY > firstRecent.y;
       const nowGoingUp   = currentY < lastScrollY - threshold;
 
-  if (recent.length >= 2) {
-    const firstRecent = recent[0];
-    if (!firstRecent) return;
-
-    const threshold = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
-    const wentDown = currentY > firstRecent.y;
-    const nowGoingUp = currentY < lastScrollY - threshold;
-
-    if (!wentDown && nowGoingUp) {
-      signals.regressionCount++;
-      console.log(`[SignalCollector] 🔄 Regression! Total: ${signals.regressionCount}`);
       if (!wasGoingDown && nowGoingUp) {
         rawSignals.regressionCount++;
         console.log(`%c[Signals] 🔄 Regression #${rawSignals.regressionCount}`, 'color:#E8593C;font-weight:bold');
@@ -138,7 +129,7 @@ function getWordAtPoint(x: number, y: number): string | null {
   try {
     const range = document.caretRangeFromPoint(x, y);
     if (!range) return null;
-    range.expand('word');
+    (range as Range & { expand?: (unit: string) => void }).expand?.('word');
     const word = range.toString().trim().replace(/[^a-zA-Z'-]/g, '');
     return word.length > 1 ? word : null;
   } catch { return null; }

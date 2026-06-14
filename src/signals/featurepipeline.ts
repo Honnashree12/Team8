@@ -6,7 +6,8 @@
 //   raw events (scroll count, hover durations) → clean numbers (WPM, regression rate)
 // =============================================================================
 
-import { FeatureVector, STORAGE_KEYS } from '../shared/types';
+import type { FeatureVector }          from '../shared/types';
+import { STORAGE_KEYS }                 from '../shared/types';
 import { rawSignals }                  from './signalCollector';
 import { getDifficultyIndex }          from '../data/wordFrequency';
 

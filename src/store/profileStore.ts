@@ -10,7 +10,7 @@ const KEY = "userProfile";
 export async function loadProfileFromStorage(): Promise<UserProfile | null> {
   return new Promise((resolve) => {
     if (typeof chrome !== "undefined" && chrome.storage) {
-      chrome.storage.local.get(KEY, (r) => resolve(r[KEY] ?? null));
+      chrome.storage.local.get(KEY, (r) => resolve((r[KEY] as UserProfile | undefined) ?? null));
     } else {
       const raw = localStorage.getItem(KEY);
       resolve(raw ? JSON.parse(raw) : null);

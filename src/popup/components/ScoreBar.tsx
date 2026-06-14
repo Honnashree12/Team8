@@ -8,7 +8,7 @@ const BANDS = [
 ];
 
 export function ScoreBar({ score }: Props) {
-  const band = BANDS.find((b) => score <= b.max) ?? BANDS[BANDS.length - 1];
+  const band = BANDS.find((b) => score <= b.max) ?? BANDS[BANDS.length - 1]!;
   const pct  = Math.round(score * 100);
 
   return (
