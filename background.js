@@ -55,3 +55,4 @@ async function injectReadingCss(tabId, css, sendResponse) {
     sendResponse({ ok: false, error: error?.message ?? String(error) });
   }
 }
+const e="userProfile";chrome.runtime.onInstalled.addListener(async r=>{r.reason==="install"&&((await chrome.storage.local.get(e))[e]||chrome.tabs.create({url:chrome.runtime.getURL("onboarding.html")}))});chrome.runtime.onMessage.addListener((r,o,t)=>{switch(r.type){case"GET_PROFILE":return chrome.storage.local.get(e,a=>{t({profile:a[e]??null})}),!0;case"SAVE_PROFILE":{const a=r.payload;return chrome.storage.local.set({[e]:a},()=>{t({ok:!0})}),!0}case"RESET_PROFILE":return chrome.storage.local.remove(e,()=>{t({ok:!0})}),!0;default:t({error:"Unknown message type"})}});chrome.tabs.onUpdated.addListener((r,o)=>{o.status});
