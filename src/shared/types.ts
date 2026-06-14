@@ -5,6 +5,8 @@ export type OnboardingMode = 'declared_dyslexic' | 'occasional' | 'fully_passive
 
 export type FeedbackType = 'accept' | 'dismiss' | 'ignore';
 
+export type OnboardingMode = 'declared' | 'occasional' | 'passive';
+export type FeedbackType = 'accept' | 'dismiss' | 'ignore';
 export type InterventionTier = 'tier1' | 'tier2' | 'tier3' | 'tier4';
 
 export type InterventionType =
@@ -64,6 +66,14 @@ export interface UserProfile {
   mode: OnboardingMode;
   difficultyScore: number;
   preferences: ReadingPreferences;
+  initialDifficultyScore: number;
+  currentDifficultyScore: number;
+  lastSessionScore: number;
+
+  preferredFont: 'lexend' | 'openDyslexic' | 'system';
+  preferredBackgroundTint: 'none' | 'cream' | 'sepia' | 'blue';
+  textToSpeechEnabled: boolean;
+
   sessionHistory: SessionSummary[];
   interventionHistory: Record<string, InterventionRecord>;
   domainSettings: DomainSetting[];
@@ -107,6 +117,18 @@ export function createDefaultProfile(
     fully_passive: 0.1,
   };
   const now = new Date().toISOString();
+// -------------------------------------------------------
+// STORAGE_KEYS — used by featurePipeline and popup
+// Import this instead of typing the key string by hand
+// (prevents typo bugs)
+// -------------------------------------------------------
+export const STORAGE_KEYS = {
+  USER_PROFILE: 'userProfile',
+  FEATURE_VECTOR: 'lastFeatureVector',
+} as const;
+
+export function createDefaultProfile(mode: OnboardingMode): UserProfile {
+  const scoreMap = { declared: 0.8, occasional: 0.4, passive: 0.1 };
 
   return {
     version: 1,

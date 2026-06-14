@@ -1,5 +1,4 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
@@ -34,12 +33,22 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     // Recommended Options
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["chrome"],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
     "strict": true,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
