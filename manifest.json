@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["readability.js", "paragraphChunker.js", "readingRuler.js", "focusMode.js", "ttsEngine.js", "vocabularyTooltips.js", "content.js"],
+      "js": ["readability.js", "paragraphChunker.js", "readingRuler.js", "focusMode.js", "ttsEngine.js", "vocabularyTooltips.js", "simplifyText.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

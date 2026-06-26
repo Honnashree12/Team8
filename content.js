@@ -352,6 +352,7 @@ function removeReadingTheme() {
   window.DysAssistFocus?.disable();
   window.DysAssistTTS?.stop();
   window.DysAssistVocab?.reset();
+  window.DysAssistSimplify?.reset();
 }
 
 function shouldApplyReadingTheme(profile) {
@@ -614,6 +615,15 @@ async function processPage() {
         window.DysAssistVocab?.enable();
       } else {
         window.DysAssistVocab?.reset();
+      }
+    }
+
+    // Handle AI Simplify text selection listener
+    if (profile.preferences) {
+      if (profile.preferences.applyImmediately !== false) {
+        window.DysAssistSimplify?.enable();
+      } else {
+        window.DysAssistSimplify?.disable();
       }
     }
   } finally {

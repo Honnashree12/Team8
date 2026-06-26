@@ -11,6 +11,8 @@ const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
 const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 30);
 const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const useGemini = process.env.USE_GEMINI === "true";
+const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const useGroq = process.env.USE_GROQ === "true";
 const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 const requestBuckets = new Map();
 
@@ -42,22 +44,35 @@ app.use(rateLimit);
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    mode: useGemini ? "gemini" : "mock",
-    geminiConfigured: Boolean(process.env.GEMINI_API_KEY)
+    mode: useGroq ? "groq" : (useGemini ? "gemini" : "mock"),
+    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    groqConfigured: Boolean(process.env.GROQ_API_KEY)
   });
 });
 
 app.post("/simplify", async (req, res, next) => {
   try {
     const text = normalizeText(req.body?.text);
-    const result = useGemini ? await callGemini([
-      "Rewrite the text in dyslexia-friendly plain language.",
-      "Keep the original meaning, use shorter sentences, and return only the rewritten text.",
-      "",
-      text
-    ].join("\n")) : mockSimplify(text);
+    let result;
+    if (useGroq) {
+      const system =
+        "You are a plain-English writing assistant. " +
+        "Rewrite complex text so it is clear and easy to read at a grade 6–8 level. " +
+        "Keep all key information. " +
+        "Return ONLY the rewritten text — no preamble, no labels, no commentary.";
+      result = await callGroq(system, text, 600);
+    } else if (useGemini) {
+      result = await callGemini([
+        "Rewrite the text in dyslexia-friendly plain language.",
+        "Keep the original meaning, use shorter sentences, and return only the rewritten text.",
+        "",
+        text
+      ].join("\n"));
+    } else {
+      result = mockSimplify(text);
+    }
 
-    res.json({ result, mocked: !useGemini });
+    res.json({ result, mocked: !useGemini && !useGroq });
   } catch (error) {
     next(error);
   }
@@ -229,6 +244,64 @@ async function fetchFreeDictionary(word) {
     const phonetic = entry.phonetic ? ` ${entry.phonetic}` : "";
 
     return `${phonetic ? phonetic + "  " : ""}${pos}${def.definition}${example}`;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function callGroq(systemPrompt, userContent, maxTokens = 600) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    const error = new Error("GROQ_API_KEY is not configured.");
+    error.status = 500;
+    throw error;
+  }
+
+  const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: groqModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.3
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data?.error?.message || "Groq request failed.");
+      error.status = response.status;
+      throw error;
+    }
+
+    const text = data?.choices?.[0]?.message?.content?.trim() || "";
+    if (!text) {
+      const error = new Error("Groq returned an empty response.");
+      error.status = 502;
+      throw error;
+    }
+
+    return text;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error("Groq request timed out.");
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }

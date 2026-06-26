@@ -37,6 +37,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       defineWord(message.payload.word, message.payload.context).then(sendResponse);
       return true;
 
+    case "SIMPLIFY_TEXT":
+      simplifyText(message.payload.text).then(sendResponse);
+      return true;
+
     default:
       sendResponse({ error: "Unknown message type" });
       return false;
@@ -87,6 +91,34 @@ async function defineWord(word, context = "") {
     return { ok: true, result: data.result };
   } catch (err) {
     console.error("[DysAssist] Error fetching definition:", err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+async function simplifyText(text) {
+  if (!text || text.trim().length < 10) {
+    return { ok: false, error: "Text too short to simplify" };
+  }
+
+  try {
+    const res = await fetch("http://127.0.0.1:8787/simplify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: text.trim()
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return { ok: true, result: data.result };
+  } catch (err) {
+    console.error("[DysAssist] Error simplifying text:", err.message);
     return { ok: false, error: err.message };
   }
 }
