@@ -75,6 +75,12 @@ const ttsPitchVal = document.getElementById("tts-pitch-val");
 const ttsHighlightToggle = document.getElementById("tts-highlight-toggle");
 const ttsTestBtn = document.getElementById("tts-test-btn");
 
+// Vocab controls
+const vocabToggle = document.getElementById("vocab-toggle");
+const vocabContent = document.getElementById("vocab-content");
+const vocabSlider = document.getElementById("vocab-slider");
+const vocabVal = document.getElementById("vocab-val");
+
 // Helpers to get/set Chrome local storage
 function getProfile() {
   return new Promise(resolve => {
@@ -137,7 +143,9 @@ async function init() {
         ttsRate: 1.0,
         ttsPitch: 1.0,
         ttsVoiceURI: "",
-        ttsHighlight: true
+        ttsHighlight: true,
+        vocabEnabled: false,
+        vocabTopN: 5
       },
       domainSettings: [],
       interventionHistory: {},
@@ -166,6 +174,8 @@ async function init() {
     if (prefs.ttsPitch === undefined) { prefs.ttsPitch = 1.0; updated = true; }
     if (prefs.ttsVoiceURI === undefined) { prefs.ttsVoiceURI = ""; updated = true; }
     if (prefs.ttsHighlight === undefined) { prefs.ttsHighlight = true; updated = true; }
+    if (prefs.vocabEnabled === undefined) { prefs.vocabEnabled = false; updated = true; }
+    if (prefs.vocabTopN === undefined) { prefs.vocabTopN = 5; updated = true; }
     if (updated) {
       currentProfile.preferences = prefs;
       await saveProfile(currentProfile);
@@ -341,6 +351,17 @@ function render(profile) {
 
   ttsHighlightToggle.checked = prefs.ttsHighlight !== false;
   populateTTSVoices(prefs.ttsVoiceURI || "");
+
+  // Vocabulary Tooltips
+  vocabToggle.checked = !!prefs.vocabEnabled;
+  if (prefs.vocabEnabled) {
+    vocabContent.classList.remove("hidden");
+  } else {
+    vocabContent.classList.add("hidden");
+  }
+  const vocabTopN = prefs.vocabTopN ?? 5;
+  vocabSlider.value = vocabTopN;
+  vocabVal.textContent = vocabTopN;
 }
 
 // Event Listeners
@@ -491,7 +512,9 @@ resetBtn.addEventListener("click", async () => {
         ttsRate: 1.0,
         ttsPitch: 1.0,
         ttsVoiceURI: "",
-        ttsHighlight: true
+        ttsHighlight: true,
+        vocabEnabled: false,
+        vocabTopN: 5
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -647,6 +670,25 @@ ttsTestBtn.addEventListener("click", async () => {
       chrome.tabs.sendMessage(tab.id, { type: "TTS_TEST" }).catch(() => {});
     }
   }
+});
+
+// Vocab Event Listeners
+vocabToggle.addEventListener("change", async (e) => {
+  currentProfile.preferences.vocabEnabled = e.target.checked;
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
+});
+
+vocabSlider.addEventListener("input", (e) => {
+  vocabVal.textContent = e.target.value;
+});
+
+vocabSlider.addEventListener("change", async (e) => {
+  currentProfile.preferences.vocabTopN = Number(e.target.value);
+  currentProfile.updatedAt = new Date().toISOString();
+  await saveProfile(currentProfile);
+  render(currentProfile);
 });
 
 function populateTTSVoices(selectedURI) {

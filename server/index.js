@@ -67,12 +67,33 @@ app.post("/define", async (req, res, next) => {
   try {
     const term = normalizeText(req.body?.term || req.body?.text, 200);
     const context = req.body?.context ? normalizeText(req.body.context, 1200) : "";
-    const result = useGemini ? await callGemini([
-      "Define the term for a dyslexic reader.",
-      "Use simple words, one short example, and return only the definition.",
-      context ? `Context: ${context}` : "",
-      `Term: ${term}`
-    ].filter(Boolean).join("\n")) : mockDefine(term, context);
+
+    let result;
+    if (useGemini) {
+      try {
+        result = await callGemini([
+          "Define the term for a dyslexic reader.",
+          "Use simple words, one short example, and return only the definition.",
+          context ? `Context: ${context}` : "",
+          `Term: ${term}`
+        ].filter(Boolean).join("\n"));
+      } catch (error) {
+        console.warn("Gemini define failed, falling back to Free Dictionary API:", error.message);
+        try {
+          result = await fetchFreeDictionary(term);
+        } catch (fallbackError) {
+          console.warn("Free Dictionary API fallback failed:", fallbackError.message);
+          result = mockDefine(term, context);
+        }
+      }
+    } else {
+      try {
+        result = await fetchFreeDictionary(term);
+      } catch (error) {
+        console.warn("Free Dictionary API failed, falling back to mock definition:", error.message);
+        result = mockDefine(term, context);
+      }
+    }
 
     res.json({ result, mocked: !useGemini });
   } catch (error) {
@@ -167,6 +188,50 @@ function mockDefine(term, context) {
   const trimmedTerm = term.replace(/[.?!:;]+$/g, "");
   const contextHint = context ? " The meaning can depend on the page context." : "";
   return `${trimmedTerm} means an important word or idea in this text.${contextHint}`;
+}
+
+async function fetchFreeDictionary(word) {
+  if (!word || word.trim().length < 2) {
+    throw new Error("Word too short");
+  }
+
+  const clean = word.toLowerCase().replace(/[^a-z'-]/g, "");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean)}`,
+      {
+        headers: { "Accept": "application/json" },
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Free Dictionary API returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const entry = data?.[0];
+    if (!entry) {
+      throw new Error("No entry found");
+    }
+
+    const meaning = entry.meanings?.[0];
+    const def = meaning?.definitions?.[0];
+    if (!def?.definition) {
+      throw new Error("No definition found");
+    }
+
+    const pos = meaning.partOfSpeech ? `(${meaning.partOfSpeech}) ` : "";
+    const example = def.example ? ` — e.g. "${def.example}"` : "";
+    const phonetic = entry.phonetic ? ` ${entry.phonetic}` : "";
+
+    return `${phonetic ? phonetic + "  " : ""}${pos}${def.definition}${example}`;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function rateLimit(req, res, next) {

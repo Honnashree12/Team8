@@ -33,6 +33,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       injectReadingCss(sender.tab?.id, message.css, sendResponse);
       return true;
 
+    case "DEFINE_WORD":
+      defineWord(message.payload.word, message.payload.context).then(sendResponse);
+      return true;
+
     default:
       sendResponse({ error: "Unknown message type" });
       return false;
@@ -53,5 +57,36 @@ async function injectReadingCss(tabId, css, sendResponse) {
     sendResponse({ ok: true });
   } catch (error) {
     sendResponse({ ok: false, error: error?.message ?? String(error) });
+  }
+}
+
+async function defineWord(word, context = "") {
+  if (!word || word.trim().length < 2) {
+    return { ok: false, error: "Word too short" };
+  }
+
+  const clean = word.toLowerCase().replace(/[^a-z'-]/g, "");
+
+  try {
+    const res = await fetch("http://127.0.0.1:8787/define", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        term: clean,
+        context: context
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return { ok: true, result: data.result };
+  } catch (err) {
+    console.error("[DysAssist] Error fetching definition:", err.message);
+    return { ok: false, error: err.message };
   }
 }

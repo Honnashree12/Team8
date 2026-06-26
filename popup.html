@@ -731,6 +731,30 @@
       </div>
     </div>
 
+    <!-- Vocabulary Tooltips Card Section -->
+    <div class="overlay-card" id="vocab-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Vocabulary Tooltips</span>
+          <span class="overlay-sub-title">Highlight difficult words and show definitions</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="vocab-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="vocab-content">
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Highlights per paragraph</span>
+            <span class="slider-value" id="vocab-val" style="font-size: 9px;">5</span>
+          </div>
+          <input type="range" id="vocab-slider" min="1" max="10" step="1" value="5">
+        </div>
+      </div>
+    </div>
+
     <!-- Reader Mode Card Section -->
     <div class="overlay-card" id="reader-mode-card">
       <div class="overlay-header">

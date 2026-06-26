@@ -351,6 +351,7 @@ function removeReadingTheme() {
   window.DysAssistRuler?.disable();
   window.DysAssistFocus?.disable();
   window.DysAssistTTS?.stop();
+  window.DysAssistVocab?.reset();
 }
 
 function shouldApplyReadingTheme(profile) {
@@ -604,6 +605,16 @@ async function processPage() {
     // Handle Text-to-Speech Settings
     if (profile.preferences) {
       window.DysAssistTTS?.updateSettings(profile.preferences);
+    }
+
+    // Handle Vocabulary Tooltips Settings & Processing
+    if (profile.preferences) {
+      window.DysAssistVocab?.updateSettings(profile.preferences);
+      if (profile.preferences.vocabEnabled) {
+        window.DysAssistVocab?.enable();
+      } else {
+        window.DysAssistVocab?.reset();
+      }
     }
   } finally {
     isApplyingChanges = false;
