@@ -667,3 +667,94 @@ function c(){const t=document.querySelectorAll("p, article p, .mw-parser-output 
       ${a?`background-color: ${a} !important; padding: 2px 4px !important; border-radius: 3px !important;`:""}
     }
   `,document.head.appendChild(r),console.log("[DysAssist] Adaptations applied — font:",e.font,"tint:",e.backgroundTint)}async function l(){const t=await p();if(!t){console.log("[DysAssist] No profile — skipping");return}console.log("[DysAssist] Profile loaded, mode:",t.mode);const e=c();t.mode==="declared_dyslexic"&&e.length>0&&m(t)}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",l):l();const g=new MutationObserver(()=>{c().length>0&&p().then(e=>{(e==null?void 0:e.mode)==="declared_dyslexic"&&m(e)})});g.observe(document.body,{childList:!0,subtree:!0});
+
+  // =============================================================================
+// WEEK 3 — Honnashree: lightweight session recorder for the Profile Summary tab
+// =============================================================================
+// This is a SEPARATE, SELF-CONTAINED snippet — paste it at the very end of
+// content.js (above the dead minified blob, which should be deleted — see
+// note below). It does NOT touch any of Manoj's existing logic.
+//
+// It estimates reading speed for the current page visit and saves it via
+// chrome.storage.local directly under profile.sessionHistory / domainStats,
+// matching the shape used in popup.js's renderSummaryTab().
+//
+// NOTE: content.js currently has a large minified line appended after the
+// `chrome.runtime.onMessage.addListener(...)` block (starts with
+// `function c(){const t=document.querySelectorAll(...`). That is leftover
+// dead code from an old build and is never executed — manifest.json only
+// loads this file as "content.js" and nothing imports that blob. Safe to
+// delete it; flagging here rather than removing it myself since it's not
+// my file this week.
+
+(function () {
+  const PROFILE_KEY = "userProfile";
+  const pageStart = Date.now();
+
+  function getTaggedWordCount() {
+    // Re-use whatever paragraph tagging already ran (data-read-id or data-da-chunk)
+    const nodes = document.querySelectorAll("[data-read-id], [data-da-chunk]");
+    let total = 0;
+    nodes.forEach((el) => {
+      const text = el.innerText || el.textContent || "";
+      total += text.trim().split(/\s+/).filter(Boolean).length;
+    });
+    return total;
+  }
+
+  function recordSession(profile, record) {
+    if (!profile.sessionHistory) profile.sessionHistory = [];
+    if (!profile.domainStats) profile.domainStats = {};
+
+    profile.sessionHistory.push(record);
+    if (profile.sessionHistory.length > 200) {
+      profile.sessionHistory = profile.sessionHistory.slice(-200);
+    }
+
+    const existing = profile.domainStats[record.domain];
+    const visits = (existing?.visits ?? 0) + 1;
+    const avgReadingSpeedWpm = existing
+      ? (existing.avgReadingSpeedWpm * existing.visits + record.readingSpeedWpm) / visits
+      : record.readingSpeedWpm;
+    const avgDifficultyScore = existing
+      ? (existing.avgDifficultyScore * existing.visits + record.difficultyScore) / visits
+      : record.difficultyScore;
+
+    profile.domainStats[record.domain] = {
+      domain: record.domain,
+      visits,
+      avgReadingSpeedWpm,
+      avgDifficultyScore,
+      interventionsOffered: existing?.interventionsOffered ?? 0,
+      interventionsAccepted: existing?.interventionsAccepted ?? 0,
+      lastVisited: record.timestamp,
+    };
+
+    profile.updatedAt = new Date().toISOString();
+    return profile;
+  }
+
+  window.addEventListener("beforeunload", () => {
+    const seconds = (Date.now() - pageStart) / 1000;
+    const totalWords = getTaggedWordCount();
+    if (seconds < 3 || totalWords < 30) return; // ignore drive-by visits
+
+    const estimatedWpm = Math.min(400, Math.round((totalWords / seconds) * 60));
+
+    try {
+      chrome.storage.local.get(PROFILE_KEY, (result) => {
+        const profile = result[PROFILE_KEY];
+        if (!profile) return;
+        const updated = recordSession(profile, {
+          domain: location.hostname,
+          timestamp: Date.now(),
+          readingSpeedWpm: estimatedWpm,
+          difficultyScore: profile.difficultyScore,
+        });
+        chrome.storage.local.set({ [PROFILE_KEY]: updated });
+      });
+    } catch {
+      // extension context may already be torn down on unload — safe to ignore
+    }
+  });
+})();

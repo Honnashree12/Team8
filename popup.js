@@ -177,6 +177,10 @@ async function init() {
 
 // Render values into DOM
 function render(profile) {
+  ensureWeek3Fields(profile);
+  if (currentTab === "summary") renderSummaryTab(profile);
+  if (currentTab === "domains") renderDomainsTab(profile);
+
   const prefs = profile.preferences || {};
 
   // Master Switch
@@ -459,47 +463,80 @@ readerModeToggle.addEventListener("change", async (e) => {
   render(currentProfile);
 });
 
-// Reset Button Click
-resetBtn.addEventListener("click", async () => {
-  if (confirm("Reset all settings to default?")) {
-    currentProfile = {
-      version: 1,
-      mode: "declared_dyslexic",
-      difficultyScore: 0.8,
-      preferences: {
-        font: "lexend",
-        backgroundTint: "cream",
-        lineHeight: "1.7",
-        letterSpacing: "0.045em",
-        overlayOpacity: 0.18,
-        applyImmediately: true,
-        readingModeEnabled: false,
-        overlayToggleOn: true,
-        chunkingEnabled: false,
-        chunkMaxSentences: 3,
-        rulerEnabled: false,
-        rulerHeight: 36,
-        rulerOpacity: 0.12,
-        rulerColor: "#0082f0",
-        rulerMode: "follow",
-        focusEnabled: false,
-        focusStyle: "both",
-        focusBlur: 4,
-        focusDimOpacity: 0.55,
-        focusTransition: 220,
-        ttsEnabled: false,
-        ttsRate: 1.0,
-        ttsPitch: 1.0,
-        ttsVoiceURI: "",
-        ttsHighlight: true
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    await saveProfile(currentProfile);
-    render(currentProfile);
-  }
+// ─── Week 3 — Reset Profile Modal (replaces old confirm()) ──────────────────
+const resetModalOverlay = document.getElementById("reset-modal-overlay");
+const resetModalWarnStage = document.getElementById("reset-modal-stage-warn");
+const resetModalConfirmStage = document.getElementById("reset-modal-stage-confirm");
+const resetModalCancel1 = document.getElementById("reset-modal-cancel-1");
+const resetModalCancel2 = document.getElementById("reset-modal-cancel-2");
+const resetModalContinue = document.getElementById("reset-modal-continue");
+const resetModalConfirmBtn = document.getElementById("reset-modal-confirm");
+
+function openResetModal() {
+  resetModalWarnStage.style.display = "block";
+  resetModalConfirmStage.style.display = "none";
+  resetModalOverlay.classList.add("open");
+}
+
+function closeResetModal() {
+  resetModalOverlay.classList.remove("open");
+}
+
+async function performReset() {
+  currentProfile = {
+    version: 1,
+    mode: "declared_dyslexic",
+    difficultyScore: 0.8,
+    preferences: {
+      font: "lexend",
+      backgroundTint: "cream",
+      lineHeight: "1.7",
+      letterSpacing: "0.045em",
+      overlayOpacity: 0.18,
+      applyImmediately: true,
+      readingModeEnabled: false,
+      overlayToggleOn: true,
+      chunkingEnabled: false,
+      chunkMaxSentences: 3,
+      rulerEnabled: false,
+      rulerHeight: 36,
+      rulerOpacity: 0.12,
+      rulerColor: "#0082f0",
+      rulerMode: "follow",
+      focusEnabled: false,
+      focusStyle: "both",
+      focusBlur: 4,
+      focusDimOpacity: 0.55,
+      focusTransition: 220,
+      ttsEnabled: false,
+      ttsRate: 1.0,
+      ttsPitch: 1.0,
+      ttsVoiceURI: "",
+      ttsHighlight: true
+    },
+    domainSettings: [],
+    interventionHistory: {},
+    sessionHistory: [],
+    domainStats: {},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  await saveProfile(currentProfile);
+  render(currentProfile);
+  closeResetModal();
+}
+
+resetBtn.addEventListener("click", openResetModal);
+resetModalCancel1.addEventListener("click", closeResetModal);
+resetModalCancel2.addEventListener("click", closeResetModal);
+resetModalOverlay.addEventListener("click", (e) => {
+  if (e.target === resetModalOverlay) closeResetModal();
 });
+resetModalContinue.addEventListener("click", () => {
+  resetModalWarnStage.style.display = "none";
+  resetModalConfirmStage.style.display = "block";
+});
+resetModalConfirmBtn.addEventListener("click", performReset);
 
 // Paragraph Chunking Event Listeners
 chunkingToggle.addEventListener("change", async (e) => {
@@ -688,6 +725,324 @@ const openOnboarding = () => {
 openOnboardingBtn.addEventListener("click", openOnboarding);
 settingsBtn.addEventListener("click", openOnboarding);
 
+// =============================================================================
+// WEEK 3 — Honnashree: Profile summary view, per-domain settings, reset flow
+// =============================================================================
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = {
+  dashboard: document.getElementById("tab-panel-dashboard"),
+  summary: document.getElementById("tab-panel-summary"),
+  domains: document.getElementById("tab-panel-domains"),
+};
+
+let currentTab = "dashboard";
+let currentDomain = "";
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  tabButtons.forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tabId);
+  });
+  Object.entries(tabPanels).forEach(([id, panel]) => {
+    panel.classList.toggle("active", id === tabId);
+  });
+  if (tabId === "summary") renderSummaryTab(currentProfile);
+  if (tabId === "domains") renderDomainsTab(currentProfile);
+}
+
+tabButtons.forEach(btn => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+// Get current tab's domain (used to highlight "current site" and for quick pause)
+function detectCurrentDomain() {
+  if (typeof chrome !== "undefined" && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      try {
+        currentDomain = new URL(tabs[0]?.url ?? "").hostname;
+      } catch {
+        currentDomain = "";
+      }
+      // Re-render whichever tab is open so the current-site dot shows correctly
+      if (currentTab === "domains") renderDomainsTab(currentProfile);
+    });
+  }
+}
+
+// ── Helpers shared by Summary + Domains tabs ─────────────────────────────────
+function scoreClass(score) {
+  if (score < 0.3) return "domain-score-low";
+  if (score < 0.5) return "domain-score-mid";
+  if (score < 0.7) return "domain-score-high";
+  return "domain-score-crit";
+}
+
+function timeAgo(ts) {
+  const diffHrs = Math.floor((Date.now() - ts) / 3600000);
+  if (diffHrs < 1) return "just now";
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  return `${Math.floor(diffHrs / 24)}d ago`;
+}
+
+function ensureWeek3Fields(profile) {
+  if (!profile.domainStats) profile.domainStats = {};
+  if (!profile.sessionHistory) profile.sessionHistory = [];
+  if (!profile.domainSettings) profile.domainSettings = [];
+  if (!profile.interventionHistory) profile.interventionHistory = {};
+  return profile;
+}
+
+function computeSummary(profile) {
+  ensureWeek3Fields(profile);
+  const sessions = profile.sessionHistory;
+  const domains = Object.values(profile.domainStats);
+
+  const totalSessions = sessions.length;
+  const avgWpm = totalSessions
+    ? Math.round(sessions.reduce((s, r) => s + (r.readingSpeedWpm || 0), 0) / totalSessions)
+    : 0;
+  const avgScore = totalSessions
+    ? sessions.reduce((s, r) => s + (r.difficultyScore || 0), 0) / totalSessions
+    : profile.difficultyScore;
+
+  const topDomains = [...domains]
+    .sort((a, b) => b.avgDifficultyScore - a.avgDifficultyScore)
+    .slice(0, 5);
+
+  const offered = domains.reduce((s, d) => s + (d.interventionsOffered || 0), 0);
+  const accepted = domains.reduce((s, d) => s + (d.interventionsAccepted || 0), 0);
+  const acceptanceRate = offered > 0 ? accepted / offered : 0;
+
+  return { totalSessions, avgWpm, avgScore, topDomains, offered, accepted, acceptanceRate };
+}
+
+// ── Render: Summary tab ──────────────────────────────────────────────────────
+function renderSummaryTab(profile) {
+  const summary = computeSummary(profile);
+
+  document.getElementById("summary-avg-wpm").innerHTML =
+    `${summary.avgWpm || "—"}<span class="unit">wpm</span>`;
+  document.getElementById("summary-avg-score").innerHTML =
+    `${Math.round(summary.avgScore * 100)}<span class="unit">%</span>`;
+
+  const pct = Math.round(summary.acceptanceRate * 100);
+  document.getElementById("summary-acceptance-pct").textContent = `${pct}%`;
+  document.getElementById("summary-acceptance-fill").style.width = `${pct}%`;
+  document.getElementById("summary-acceptance-sub").textContent =
+    `${summary.accepted} accepted of ${summary.offered} offered`;
+
+  // Top difficult domains
+  const domainsList = document.getElementById("summary-domains-list");
+  if (summary.topDomains.length === 0) {
+    domainsList.innerHTML = `<div class="empty-state">No site data yet — keep browsing.</div>`;
+  } else {
+    domainsList.innerHTML = summary.topDomains.map(d => `
+      <div class="domain-row" data-domain="${d.domain}">
+        <div class="domain-row-info">
+          <div class="domain-row-name">${d.domain}</div>
+          <div class="domain-row-sub">${d.visits} visit${d.visits !== 1 ? "s" : ""} · ${Math.round(d.avgReadingSpeedWpm)} wpm · ${timeAgo(d.lastVisited)}</div>
+        </div>
+        <span class="domain-score-pill ${scoreClass(d.avgDifficultyScore)}">${Math.round(d.avgDifficultyScore * 100)}%</span>
+        <button class="domain-remove-btn" data-remove-domain="${d.domain}" title="Reset history for this site">✕</button>
+      </div>
+    `).join("");
+
+    domainsList.querySelectorAll("[data-remove-domain]").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const domain = btn.dataset.removeDomain;
+        delete currentProfile.domainStats[domain];
+        currentProfile.sessionHistory = currentProfile.sessionHistory.filter(s => s.domain !== domain);
+        currentProfile.updatedAt = new Date().toISOString();
+        await saveProfile(currentProfile);
+        renderSummaryTab(currentProfile);
+      });
+    });
+  }
+
+  // Intervention history
+  const historyList = document.getElementById("summary-history-list");
+  const historyEntries = Object.entries(profile.interventionHistory || {});
+  if (historyEntries.length === 0) {
+    historyList.innerHTML = `<div class="empty-state">No interventions recorded yet.</div>`;
+  } else {
+    historyList.innerHTML = historyEntries.map(([key, h]) => {
+      const statusClass = h.lastAction === "accepted" ? "history-accepted"
+        : h.lastAction === "dismissed" ? "history-dismissed" : "history-pending";
+      return `
+        <div class="history-row">
+          <div>
+            <div class="history-row-label">${key.replace(/_/g, " ")}</div>
+            <div class="history-row-sub">Level ${h.level} · weight ${Math.round((h.weight || 0) * 100)}%</div>
+          </div>
+          <span class="history-status ${statusClass}">${h.lastAction || "pending"}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  const memberDays = Math.max(1, Math.floor((Date.now() - new Date(profile.createdAt).getTime()) / 86400000));
+  document.getElementById("summary-footer-note").textContent =
+    `${summary.totalSessions} sessions tracked · member for ${memberDays} day${memberDays !== 1 ? "s" : ""}`;
+}
+
+// ── Render: Per-Domain Settings tab ──────────────────────────────────────────
+const SENSITIVITY_LABELS = [
+  { max: 0.35, label: "Low — only intervene when struggling badly" },
+  { max: 0.65, label: "Default — follows global thresholds" },
+  { max: 1.01, label: "High — intervene early and often" },
+];
+
+function sensitivityLabel(v) {
+  return SENSITIVITY_LABELS.find(s => v <= s.max).label;
+}
+
+function renderDomainsTab(profile) {
+  ensureWeek3Fields(profile);
+
+  const known = new Set([
+    ...(currentDomain ? [currentDomain] : []),
+    ...profile.domainSettings.map(d => d.domain),
+    ...Object.keys(profile.domainStats),
+  ]);
+
+  const domains = Array.from(known).sort((a, b) => {
+    if (a === currentDomain) return -1;
+    if (b === currentDomain) return 1;
+    return a.localeCompare(b);
+  });
+
+  const list = document.getElementById("domains-list");
+
+  if (domains.length === 0) {
+    list.innerHTML = `<div class="empty-state">No site data yet — visit a few pages first.</div>`;
+    return;
+  }
+
+  list.innerHTML = domains.map(domain => {
+    const setting = profile.domainSettings.find(d => d.domain === domain);
+    const stats = profile.domainStats[domain];
+    const paused = setting?.paused ?? false;
+    const sensitivity = setting?.sensitivityOverride;
+    const isCurrent = domain === currentDomain;
+
+    return `
+      <div class="domain-row" data-domain-toggle="${domain}" style="flex-direction: column; align-items: stretch; cursor: default; padding: 0; overflow: hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding: 9px 10px; cursor: pointer;" data-domain-header="${domain}">
+          ${isCurrent ? '<span class="domain-current-dot"></span>' : ''}
+          <div class="domain-row-info">
+            <div class="domain-row-name">${domain}</div>
+          </div>
+          ${paused ? '<span class="domain-score-pill domain-score-crit">paused</span>' : ''}
+          ${sensitivity !== undefined ? '<span class="domain-score-pill domain-score-mid">custom</span>' : ''}
+          <span style="color:#475569; font-size:10px;" data-chevron="${domain}">▼</span>
+        </div>
+        <div class="domain-detail" id="domain-detail-${cssEscape(domain)}">
+          ${stats ? `
+            <div class="domain-detail-stats">
+              <div class="domain-detail-stat">
+                <div class="domain-detail-stat-val">${Math.round(stats.avgReadingSpeedWpm)}</div>
+                <div class="domain-detail-stat-label">avg wpm</div>
+              </div>
+              <div class="domain-detail-stat">
+                <div class="domain-detail-stat-val">${Math.round(stats.avgDifficultyScore * 100)}%</div>
+                <div class="domain-detail-stat-label">difficulty</div>
+              </div>
+            </div>
+          ` : ''}
+          <div class="domain-detail-row">
+            <span class="domain-detail-row-label">Pause DysAssist here</span>
+            <label class="switch" style="width:32px; height:18px;">
+              <input type="checkbox" data-pause-domain="${domain}" ${paused ? "checked" : ""}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div>
+            <div class="domain-detail-row">
+              <span class="domain-detail-row-label">Sensitivity override</span>
+              ${sensitivity !== undefined ? `<button class="clear-override-btn" data-clear-override="${domain}">Reset to default</button>` : ''}
+            </div>
+            <input type="range" min="0.1" max="0.9" step="0.1" value="${sensitivity ?? 0.5}" data-sensitivity-domain="${domain}" style="margin-top:4px;">
+            <div class="sensitivity-note" data-sensitivity-note="${domain}">${sensitivityLabel(sensitivity ?? 0.5)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // Wire up expand/collapse
+  list.querySelectorAll("[data-domain-header]").forEach(header => {
+    header.addEventListener("click", () => {
+      const domain = header.dataset.domainHeader;
+      const detail = document.getElementById(`domain-detail-${cssEscape(domain)}`);
+      const chevron = list.querySelector(`[data-chevron="${cssEscapeAttr(domain)}"]`);
+      const willOpen = !detail.classList.contains("open");
+      detail.classList.toggle("open", willOpen);
+      if (chevron) chevron.textContent = willOpen ? "▲" : "▼";
+    });
+  });
+
+  // Wire up pause toggles
+  list.querySelectorAll("[data-pause-domain]").forEach(input => {
+    input.addEventListener("change", async (e) => {
+      e.stopPropagation();
+      const domain = input.dataset.pauseDomain;
+      const paused = input.checked;
+      const existing = currentProfile.domainSettings.find(d => d.domain === domain);
+      if (existing) existing.paused = paused;
+      else currentProfile.domainSettings.push({ domain, paused, sensitivityOverride: undefined });
+      currentProfile.updatedAt = new Date().toISOString();
+      await saveProfile(currentProfile);
+      renderDomainsTab(currentProfile);
+    });
+  });
+
+  // Wire up sensitivity sliders
+  list.querySelectorAll("[data-sensitivity-domain]").forEach(input => {
+    input.addEventListener("input", (e) => {
+      const domain = input.dataset.sensitivityDomain;
+      const note = list.querySelector(`[data-sensitivity-note="${cssEscapeAttr(domain)}"]`);
+      if (note) note.textContent = sensitivityLabel(parseFloat(input.value));
+    });
+    input.addEventListener("change", async (e) => {
+      const domain = input.dataset.sensitivityDomain;
+      const value = parseFloat(input.value);
+      const existing = currentProfile.domainSettings.find(d => d.domain === domain);
+      if (existing) existing.sensitivityOverride = value;
+      else currentProfile.domainSettings.push({ domain, paused: false, sensitivityOverride: value });
+      currentProfile.updatedAt = new Date().toISOString();
+      await saveProfile(currentProfile);
+      renderDomainsTab(currentProfile);
+    });
+  });
+
+  // Wire up clear override buttons
+  list.querySelectorAll("[data-clear-override]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const domain = btn.dataset.clearOverride;
+      const existing = currentProfile.domainSettings.find(d => d.domain === domain);
+      if (existing) existing.sensitivityOverride = undefined;
+      currentProfile.updatedAt = new Date().toISOString();
+      await saveProfile(currentProfile);
+      renderDomainsTab(currentProfile);
+    });
+  });
+}
+
+// Small helper since domain strings can contain dots which break CSS selectors
+function cssEscape(str) {
+  return str.replace(/[^a-zA-Z0-9]/g, "_");
+}
+function cssEscapeAttr(str) {
+  return str; // used only inside [data-x="..."] attribute selectors, safe as-is
+}
+
+// Kick off current-domain detection once popup opens
+detectCurrentDomain();
+
 // Initialize popup logic on document ready
 document.addEventListener("DOMContentLoaded", init);
 
@@ -699,4 +1054,3 @@ if (typeof chrome !== "undefined" && chrome.storage) {
     }
   });
 }
-import{u as i,r as o,j as e,c,R as d}from"./chunks/profileStore-BXxnwjb_.js";const x={declared_dyslexic:{label:"Full assistance",emoji:"🧠",color:"text-purple-700 bg-purple-100"},occasional:{label:"Smart mode",emoji:"📚",color:"text-blue-700 bg-blue-100"},fully_passive:{label:"Passive mode",emoji:"👀",color:"text-green-700 bg-green-100"}};function m({score:s}){const t=Math.round(s*100),r=s<.3?"bg-green-400":s<.5?"bg-yellow-400":s<.7?"bg-orange-400":"bg-red-400",l=s<.3?"Reading fine":s<.5?"Mild friction":s<.7?"Struggling":"High difficulty";return e.jsxs("div",{className:"mb-4",children:[e.jsxs("div",{className:"flex justify-between items-center mb-1",children:[e.jsx("span",{className:"text-xs font-medium text-gray-600",children:"Difficulty score"}),e.jsx("span",{className:"text-xs font-semibold text-gray-800",children:l})]}),e.jsx("div",{className:"h-2 bg-gray-100 rounded-full overflow-hidden",children:e.jsx("div",{className:`h-full rounded-full transition-all ${r}`,style:{width:`${t}%`}})}),e.jsxs("div",{className:"flex justify-between mt-0.5",children:[e.jsx("span",{className:"text-xs text-gray-400",children:"0"}),e.jsxs("span",{className:"text-xs font-medium text-gray-600",children:[t,"%"]}),e.jsx("span",{className:"text-xs text-gray-400",children:"100"})]})]})}function b(){const{profile:s,isLoading:t,loadProfile:r,resetProfile:l}=i();if(o.useEffect(()=>{r()},[r]),t)return e.jsx("div",{className:"w-72 p-6 flex items-center justify-center",children:e.jsx("div",{className:"animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full"})});if(!s)return e.jsxs("div",{className:"w-72 p-6 text-center",children:[e.jsx("p",{className:"text-sm text-gray-500 mb-4",children:"No profile found."}),e.jsx("button",{onClick:()=>chrome.tabs.create({url:chrome.runtime.getURL("onboarding.html")}),className:"w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors",children:"Complete setup →"})]});const a=x[s.mode];return e.jsxs("div",{className:"w-72 bg-white",children:[e.jsxs("div",{className:"px-4 py-3 border-b border-gray-100 flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("span",{className:"text-lg",children:"📖"}),e.jsx("span",{className:"font-bold text-gray-900 text-sm font-lexend",children:"DysAssist"})]}),e.jsxs("span",{className:`text-xs px-2 py-0.5 rounded-full font-medium ${a.color}`,children:[a.emoji," ",a.label]})]}),e.jsxs("div",{className:"px-4 py-4",children:[e.jsx(m,{score:s.difficultyScore}),e.jsxs("div",{className:"mb-4",children:[e.jsx("h3",{className:"text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2",children:"Active adaptations"}),s.mode==="declared_dyslexic"?e.jsx("div",{className:"space-y-1.5",children:[{label:`Font: ${s.preferences.font}`,icon:"🔤"},{label:`Line height: ${s.preferences.lineHeight}`,icon:"↕️"},{label:`Letter spacing: ${s.preferences.letterSpacing}`,icon:"↔️"},{label:`Tint: ${s.preferences.backgroundTint}`,icon:"🎨"}].map(n=>e.jsxs("div",{className:"flex items-center gap-2 text-xs text-gray-700",children:[e.jsx("span",{children:n.icon}),e.jsx("span",{className:"capitalize",children:n.label}),e.jsx("span",{className:"ml-auto w-2 h-2 rounded-full bg-green-400"})]},n.label))}):e.jsx("p",{className:"text-xs text-gray-400 italic",children:"Monitoring passively — no adaptations applied yet."})]}),e.jsx("div",{className:"bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4",children:e.jsxs("p",{className:"text-xs text-amber-700",children:[e.jsx("strong",{children:"Week 1 build:"})," Signal collection and intervention engine are coming in Week 2–3. Dashboard and settings will expand then."]})}),e.jsxs("div",{className:"flex gap-2",children:[e.jsx("button",{onClick:()=>chrome.tabs.create({url:chrome.runtime.getURL("onboarding.html")}),className:"flex-1 text-xs border border-gray-200 hover:border-brand-300 text-gray-600 hover:text-brand-700 py-2 rounded-lg transition-colors",children:"⚙️ Settings"}),e.jsx("button",{onClick:()=>{confirm("Reset your profile? This cannot be undone.")&&l()},className:"flex-1 text-xs border border-red-100 hover:border-red-300 text-red-400 hover:text-red-600 py-2 rounded-lg transition-colors",children:"🗑️ Reset profile"})]})]}),e.jsx("div",{className:"px-4 py-2 border-t border-gray-50 text-center",children:e.jsx("p",{className:"text-xs text-gray-400",children:"All data is stored locally on your device"})})]})}c.createRoot(document.getElementById("root")).render(e.jsx(d.StrictMode,{children:e.jsx(b,{})}));

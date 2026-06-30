@@ -447,6 +447,409 @@
       border-color: #334155;
       color: #ffffff;
     }
+
+    /* ── Week 3 additions ──────────────────────────────────────────────── */
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 7px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .tab-btn:hover {
+      color: #cbd5e1;
+    }
+
+    .tab-btn.active {
+      background: #0082f0;
+      color: #ffffff;
+    }
+
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    /* Summary stat cards */
+    .summary-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .summary-stat-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .summary-stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .summary-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0082f0;
+    }
+
+    .summary-stat-value .unit {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: 2px;
+    }
+
+    /* Acceptance bar card */
+    .acceptance-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .acceptance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .acceptance-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .acceptance-pct {
+      font-size: 12px;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    .acceptance-track {
+      height: 5px;
+      background: #1e293b;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .acceptance-fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    .acceptance-sub {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    /* Domain list rows (used in both Summary "top difficult" and Domains tab) */
+    .domain-row {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .domain-row:hover {
+      border-color: #334155;
+    }
+
+    .domain-row-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .domain-row-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .domain-row-sub {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .domain-score-pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
+    .domain-score-low { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .domain-score-mid { background: rgba(234,179,8,0.12); color: #eab308; }
+    .domain-score-high { background: rgba(249,115,22,0.12); color: #f97316; }
+    .domain-score-crit { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+    .domain-current-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0082f0;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      font-size: 10px;
+      color: #64748b;
+      font-style: italic;
+      text-align: center;
+      padding: 14px 0;
+    }
+
+    /* Intervention history rows */
+    .history-row {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-row-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-transform: capitalize;
+    }
+
+    .history-row-sub {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .history-status {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+
+    .history-accepted { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .history-dismissed { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .history-pending { background: #1e293b; color: #64748b; }
+
+    /* Domain settings — expandable detail panel */
+    .domain-detail {
+      background: #0d0f17;
+      border-top: 1px solid #1e293b;
+      padding: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .domain-detail.open {
+      display: flex;
+    }
+
+    .domain-detail-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .domain-detail-stat {
+      background: #161925;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .domain-detail-stat-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .domain-detail-stat-label {
+      font-size: 8px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .domain-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .domain-detail-row-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .sensitivity-note {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .clear-override-btn {
+      font-size: 9px;
+      color: #0082f0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    .clear-override-btn:hover {
+      text-decoration: underline;
+    }
+
+    .domain-pause-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Reset confirmation modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      width: 270px;
+      text-align: center;
+    }
+
+    .modal-icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .modal-text {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .modal-btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 9px 0;
+      border-radius: 9px;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1px solid #1e293b;
+      transition: all 0.15s ease;
+    }
+
+    .modal-btn-cancel {
+      background: #1c2030;
+      color: #cbd5e1;
+    }
+
+    .modal-btn-cancel:hover {
+      background: #232838;
+    }
+
+    .modal-btn-danger {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+    }
+
+    .modal-btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .domain-remove-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+
+    .domain-remove-btn:hover {
+      color: #ef4444;
+    }
   </style>
 </head>
 
@@ -489,6 +892,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Week 3 — Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-btn-dashboard" data-tab="dashboard">🏠 Dashboard</button>
+      <button class="tab-btn" id="tab-btn-summary" data-tab="summary">📊 Summary</button>
+      <button class="tab-btn" id="tab-btn-domains" data-tab="domains">🌐 Sites</button>
+    </div>
+
+    <!-- Dashboard Tab Panel (wraps all existing controls) -->
+    <div class="tab-panel active" id="tab-panel-dashboard">
 
     <!-- Font Selection Section -->
     <div>
@@ -745,6 +1158,63 @@
       </div>
     </div>
 
+    </div><!-- /tab-panel-dashboard -->
+
+    <!-- Week 3 — Profile Summary Tab Panel -->
+    <div class="tab-panel" id="tab-panel-summary">
+
+      <div class="summary-stats-row">
+        <div class="summary-stat-card">
+          <div class="summary-stat-label">Avg Reading Speed</div>
+          <div class="summary-stat-value" id="summary-avg-wpm">—<span class="unit">wpm</span></div>
+        </div>
+        <div class="summary-stat-card">
+          <div class="summary-stat-label">Avg Difficulty</div>
+          <div class="summary-stat-value" id="summary-avg-score">—<span class="unit">%</span></div>
+        </div>
+      </div>
+
+      <div class="acceptance-card">
+        <div class="acceptance-header">
+          <span class="acceptance-title">Intervention Acceptance</span>
+          <span class="acceptance-pct" id="summary-acceptance-pct">0%</span>
+        </div>
+        <div class="acceptance-track">
+          <div class="acceptance-fill" id="summary-acceptance-fill" style="width: 0%;"></div>
+        </div>
+        <div class="acceptance-sub" id="summary-acceptance-sub">0 accepted of 0 offered</div>
+      </div>
+
+      <div>
+        <div class="section-title">Top Difficult Sites</div>
+        <div id="summary-domains-list" style="display:flex; flex-direction:column; gap:6px;">
+          <div class="empty-state">No site data yet — keep browsing.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Intervention History</div>
+        <div id="summary-history-list" style="display:flex; flex-direction:column; gap:6px;">
+          <div class="empty-state">No interventions recorded yet.</div>
+        </div>
+      </div>
+
+      <div class="acceptance-sub" id="summary-footer-note" style="text-align:center;">
+        0 sessions tracked
+      </div>
+    </div><!-- /tab-panel-summary -->
+
+    <!-- Week 3 — Per-Domain Settings Tab Panel -->
+    <div class="tab-panel" id="tab-panel-domains">
+      <div class="section-title">Per-Domain Settings</div>
+      <div id="domains-list" style="display:flex; flex-direction:column; gap:6px;">
+        <div class="empty-state">No site data yet — visit a few pages first.</div>
+      </div>
+      <div class="acceptance-sub" style="text-align:center; margin-top: 4px;">
+        Sensitivity overrides are placeholders — wired into the real decision agent by the scorer module.
+      </div>
+    </div><!-- /tab-panel-domains -->
+
     <!-- Footer Buttons -->
     <div class="footer-row">
       <button class="footer-btn footer-btn-reset" id="reset-btn">
@@ -757,19 +1227,35 @@
     </div>
 
   </div>
+
+  <!-- Week 3 — Reset Profile Confirmation Modal -->
+  <div class="modal-overlay" id="reset-modal-overlay">
+    <div class="modal-card" id="reset-modal-stage-warn">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-title">Reset your profile?</div>
+      <div class="modal-text">
+        This will permanently delete your onboarding mode, preferences, reading history,
+        per-domain settings, and intervention history. This cannot be undone.
+      </div>
+      <div class="modal-btn-row">
+        <button class="modal-btn modal-btn-cancel" id="reset-modal-cancel-1">Cancel</button>
+        <button class="modal-btn modal-btn-danger" id="reset-modal-continue">Continue</button>
+      </div>
+    </div>
+    <div class="modal-card" id="reset-modal-stage-confirm" style="display:none;">
+      <div class="modal-icon">🗑️</div>
+      <div class="modal-title">Are you absolutely sure?</div>
+      <div class="modal-text">
+        You'll need to go through onboarding again from scratch. All reading data on this device will be erased.
+      </div>
+      <div class="modal-btn-row">
+        <button class="modal-btn modal-btn-cancel" id="reset-modal-cancel-2">Keep my profile</button>
+        <button class="modal-btn modal-btn-danger" id="reset-modal-confirm">Yes, delete everything</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/popup.js"></script>
 </body>
 
-</html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DysAssist</title>
-    <script type="module" crossorigin src="/popup.js"></script>
-    <link rel="modulepreload" crossorigin href="/chunks/profileStore-BXxnwjb_.js">
-    <link rel="stylesheet" crossorigin href="/assets/popup-iHCD_uOU.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
 </html>
