@@ -77,9 +77,7 @@ function buildReadingCss(theme) {
       font-style: italic;
     }
 
-    html,
-    body,
-    body * {
+    html, body, body * {
       font-family: ${theme.fontFamily} !important;
       line-height: ${theme.lineHeight} !important;
       letter-spacing: ${theme.letterSpacing} !important;
@@ -87,66 +85,29 @@ function buildReadingCss(theme) {
       text-shadow: none !important;
     }
 
-    html,
-    body {
+    html, body {
       background: ${theme.background} !important;
       color: ${theme.text} !important;
     }
 
-    body,
-    main,
-    article,
-    section,
-    aside,
-    nav,
-    header,
-    footer,
-    div,
-    p,
-    li,
-    blockquote,
-    table,
-    td,
-    th,
-    form,
-    label,
-    input,
-    textarea,
-    select,
-    button {
+    body, main, article, section, aside, nav, header, footer,
+    div, p, li, blockquote, table, td, th, form, label,
+    input, textarea, select, button {
       background-color: ${theme.background} !important;
       color: ${theme.text} !important;
       background-image: none !important;
       box-shadow: none !important;
     }
 
-    a,
-    a *,
-    [role="link"],
-    [role="link"] * {
+    a, a *, [role="link"], [role="link"] * {
       color: #064f7d !important;
     }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    strong,
-    b,
-    em,
-    span,
-    small,
-    code,
-    pre {
+    h1, h2, h3, h4, h5, h6, strong, b, em, span, small, code, pre {
       color: ${theme.text} !important;
     }
 
-    input,
-    textarea,
-    select,
-    button {
+    input, textarea, select, button {
       border-color: #5b5343 !important;
     }
 
@@ -170,7 +131,6 @@ function buildReadingCss(theme) {
       mix-blend-mode: multiply !important;
     }
 
-    /* Distraction-Free Reader Mode Styles */
     #dysassist-reader-view {
       position: fixed !important;
       inset: 0 !important;
@@ -188,7 +148,7 @@ function buildReadingCss(theme) {
 
     @keyframes dysassist-fade-in {
       from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0);    }
     }
 
     #dysassist-reader-view .reader-container {
@@ -199,7 +159,7 @@ function buildReadingCss(theme) {
 
     #dysassist-reader-view .reader-header {
       margin-bottom: 32px !important;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+      border-bottom: 1px solid rgba(0,0,0,0.1) !important;
       padding-bottom: 24px !important;
     }
 
@@ -227,8 +187,8 @@ function buildReadingCss(theme) {
       width: 44px !important;
       height: 44px !important;
       border-radius: 50% !important;
-      background-color: rgba(0, 0, 0, 0.05) !important;
-      border: 1px solid rgba(0, 0, 0, 0.1) !important;
+      background-color: rgba(0,0,0,0.05) !important;
+      border: 1px solid rgba(0,0,0,0.1) !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -239,13 +199,11 @@ function buildReadingCss(theme) {
     }
 
     #dysassist-reader-view .reader-close-btn:hover {
-      background-color: rgba(0, 0, 0, 0.1) !important;
+      background-color: rgba(0,0,0,0.1) !important;
       transform: scale(1.05) !important;
     }
 
-    #dysassist-reader-view .reader-content {
-      font-size: 1.35rem !important;
-    }
+    #dysassist-reader-view .reader-content { font-size: 1.35rem !important; }
 
     #dysassist-reader-view .reader-content p {
       margin-bottom: 1.6em !important;
@@ -270,7 +228,7 @@ function buildReadingCss(theme) {
       height: auto !important;
       border-radius: 12px !important;
       margin: 24px 0 !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
     }
 
     #dysassist-reader-view .reader-content ul,
@@ -280,17 +238,9 @@ function buildReadingCss(theme) {
       list-style-position: outside !important;
     }
 
-    #dysassist-reader-view .reader-content ul {
-      list-style-type: disc !important;
-    }
-
-    #dysassist-reader-view .reader-content ol {
-      list-style-type: decimal !important;
-    }
-
-    #dysassist-reader-view .reader-content li {
-      margin-bottom: 0.6em !important;
-    }
+    #dysassist-reader-view .reader-content ul  { list-style-type: disc    !important; }
+    #dysassist-reader-view .reader-content ol  { list-style-type: decimal !important; }
+    #dysassist-reader-view .reader-content li  { margin-bottom: 0.6em     !important; }
   `;
 }
 
@@ -313,19 +263,13 @@ function installLocalStyle(css) {
     style.id = DYSASSIST_STYLE_ID;
     document.documentElement.appendChild(style);
   }
-  if (style.textContent !== css) {
-    style.textContent = css;
-  }
+  if (style.textContent !== css) style.textContent = css;
 }
 
 function requestScriptingCss(css) {
   try {
-    chrome.runtime.sendMessage({ type: "APPLY_READING_THEME_CSS", css }, () => {
-      // The local style remains as a fallback when scripting injection is unavailable.
-    });
-  } catch {
-    // Ignore: some extension contexts cannot message during early navigation.
-  }
+    chrome.runtime.sendMessage({ type: "APPLY_READING_THEME_CSS", css }, () => {});
+  } catch {}
 }
 
 function ensureTintOverlay() {
@@ -339,14 +283,12 @@ function ensureTintOverlay() {
 function removeReadingTheme() {
   document.getElementById(DYSASSIST_STYLE_ID)?.remove();
   document.getElementById(DYSASSIST_OVERLAY_ID)?.remove();
-  document
-    .querySelectorAll("[data-dysassist-hidden-media='true']")
-    .forEach(element => {
-      element.removeAttribute("data-dysassist-hidden-media");
-      element.style.removeProperty("display");
-      element.style.removeProperty("visibility");
-      element.style.removeProperty("opacity");
-    });
+  document.querySelectorAll("[data-dysassist-hidden-media='true']").forEach(el => {
+    el.removeAttribute("data-dysassist-hidden-media");
+    el.style.removeProperty("display");
+    el.style.removeProperty("visibility");
+    el.style.removeProperty("opacity");
+  });
   window.DysAssistChunker?.reset();
   window.DysAssistRuler?.disable();
   window.DysAssistFocus?.disable();
@@ -358,63 +300,50 @@ function shouldApplyReadingTheme(profile) {
 }
 
 function removeMedia() {
-  document
-    .querySelectorAll("img,picture,svg,canvas,video,iframe,embed,object,figure,[role='img']")
-    .forEach(element => {
-      if (element.id === DYSASSIST_OVERLAY_ID) return;
-      element.setAttribute("data-dysassist-hidden-media", "true");
-      element.style.setProperty("display", "none", "important");
-      element.style.setProperty("visibility", "hidden", "important");
-      element.style.setProperty("opacity", "0", "important");
-    });
+  document.querySelectorAll(
+    "img,picture,svg,canvas,video,iframe,embed,object,figure,[role='img']"
+  ).forEach(el => {
+    if (el.id === DYSASSIST_OVERLAY_ID) return;
+    el.setAttribute("data-dysassist-hidden-media", "true");
+    el.style.setProperty("display",     "none",   "important");
+    el.style.setProperty("visibility",  "hidden", "important");
+    el.style.setProperty("opacity",     "0",      "important");
+  });
 }
 
 function restoreHiddenMedia() {
-  document
-    .querySelectorAll("[data-dysassist-hidden-media='true']")
-    .forEach(element => {
-      element.removeAttribute("data-dysassist-hidden-media");
-      element.style.removeProperty("display");
-      element.style.removeProperty("visibility");
-      element.style.removeProperty("opacity");
-    });
+  document.querySelectorAll("[data-dysassist-hidden-media='true']").forEach(el => {
+    el.removeAttribute("data-dysassist-hidden-media");
+    el.style.removeProperty("display");
+    el.style.removeProperty("visibility");
+    el.style.removeProperty("opacity");
+  });
 }
 
 function extractReadableElements() {
-  if (typeof globalThis.DysAssistReadability !== "function") {
-    return [];
-  }
-
+  if (typeof globalThis.DysAssistReadability !== "function") return [];
   const parser = new globalThis.DysAssistReadability(document);
-  const selected = parser.parse().candidates.slice(0, 250).map(candidate => candidate.element);
-  selected.forEach((element, index) => {
-    element.dataset.dysassistReadable = "true";
-    element.dataset.readId ||= `r-${index}`;
+  const selected = parser.parse().candidates.slice(0, 250).map(c => c.element);
+  selected.forEach((el, i) => {
+    el.dataset.dysassistReadable = "true";
+    el.dataset.readId ||= `r-${i}`;
   });
-
   return selected;
 }
 
 function showReaderOverlay(profile) {
-  let readerView = document.getElementById("dysassist-reader-view");
-  if (readerView) {
-    return;
-  }
+  if (document.getElementById("dysassist-reader-view")) return;
 
-  readerView = document.createElement("div");
+  const readerView = document.createElement("div");
   readerView.id = "dysassist-reader-view";
   document.body.appendChild(readerView);
-
-  // Prevent background scrolling
   document.body.style.setProperty("overflow", "hidden", "important");
 
-  // Parse page
-  const parser = new globalThis.DysAssistReadability(document);
-  const parsed = parser.parse();
-  const title = parsed.title || document.title;
-  const domain = window.location.hostname;
+  const parser  = new globalThis.DysAssistReadability(document);
+  const parsed  = parser.parse();
+  const title   = parsed.title || document.title;
+  const domain  = window.location.hostname;
 
-  // Build the reader structure
   readerView.innerHTML = `
     <button class="reader-close-btn" id="dysassist-close-reader" aria-label="Close reader">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -430,73 +359,50 @@ function showReaderOverlay(profile) {
     </div>
   `;
 
-  // Clone candidates
   const target = readerView.querySelector("#dysassist-reader-content-target");
   const candidates = parsed.candidates;
-  
-  if (candidates && candidates.length > 0) {
-    const topCandidates = candidates.filter(c => {
-      return !candidates.some(other => other !== c && other.element.contains(c.element));
-    });
 
+  if (candidates && candidates.length > 0) {
+    const tagsToKeep = ["p","h1","h2","h3","h4","h5","h6","blockquote","ul","ol","li","img"];
+    const topCandidates = candidates.filter(c =>
+      !candidates.some(other => other !== c && other.element.contains(c.element))
+    );
     topCandidates.forEach(c => {
       const clone = c.element.cloneNode(true);
-      
-      // We only want to keep highly structured content tags
-      const tagsToKeep = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "ul", "ol", "li", "img"];
-      const contentElements = clone.querySelectorAll(tagsToKeep.join(","));
-      
-      // Filter out descendants of other kept elements to prevent duplication
-      const topLevelElements = Array.from(contentElements).filter(el => {
-        let parent = el.parentNode;
-        while (parent && parent !== clone) {
-          if (tagsToKeep.includes(parent.tagName.toLowerCase())) {
-            return false;
-          }
-          parent = parent.parentNode;
+      const topLevel = Array.from(clone.querySelectorAll(tagsToKeep.join(","))).filter(el => {
+        let p = el.parentNode;
+        while (p && p !== clone) {
+          if (tagsToKeep.includes(p.tagName.toLowerCase())) return false;
+          p = p.parentNode;
         }
         return true;
       });
-
-      topLevelElements.forEach(el => {
-        const cleanEl = el.cloneNode(true);
-        cleanEl.removeAttribute("style");
-        cleanEl.removeAttribute("class");
-        cleanEl.removeAttribute("id");
-        
-        // Clean all descendants of styles and classes
-        cleanEl.querySelectorAll("*").forEach(child => {
-          child.removeAttribute("style");
-          child.removeAttribute("class");
-          child.removeAttribute("id");
+      topLevel.forEach(el => {
+        const clean = el.cloneNode(true);
+        clean.removeAttribute("style");
+        clean.removeAttribute("class");
+        clean.removeAttribute("id");
+        clean.querySelectorAll("*").forEach(ch => {
+          ch.removeAttribute("style");
+          ch.removeAttribute("class");
+          ch.removeAttribute("id");
         });
-        
-        // Setup simple styles for links
-        if (cleanEl.matches("a")) {
-          cleanEl.style.setProperty("color", "#064f7d", "important");
-          cleanEl.style.setProperty("text-decoration", "underline", "important");
-        }
-        cleanEl.querySelectorAll("a").forEach(a => {
-          a.style.setProperty("color", "#064f7d", "important");
-          a.style.setProperty("text-decoration", "underline", "important");
+        clean.querySelectorAll("a").forEach(a => {
+          a.style.setProperty("color",           "#064f7d",    "important");
+          a.style.setProperty("text-decoration", "underline",  "important");
         });
-
-        // Ensure paragraph fonts are clean and large
-        target.appendChild(cleanEl);
+        target.appendChild(clean);
       });
     });
   } else {
-    // Fallback if no readability candidates were found
-    const fallbackText = document.createElement("p");
-    fallbackText.textContent = "No main article content could be detected on this page. Showing raw text paragraphs instead:";
-    fallbackText.style.setProperty("font-style", "italic", "important");
-    fallbackText.style.setProperty("opacity", "0.7", "important");
-    target.appendChild(fallbackText);
+    const fb = document.createElement("p");
+    fb.textContent = "No main article content could be detected on this page. Showing raw text paragraphs instead:";
+    fb.style.setProperty("font-style", "italic",  "important");
+    fb.style.setProperty("opacity",    "0.7",     "important");
+    target.appendChild(fb);
 
-    // Fallback: put paragraphs
-    const paragraphs = document.querySelectorAll("p");
     let added = false;
-    paragraphs.forEach(p => {
+    document.querySelectorAll("p").forEach(p => {
       if (p.innerText.trim().length > 20 && !p.closest("#dysassist-reader-view")) {
         const clone = p.cloneNode(true);
         clone.removeAttribute("style");
@@ -505,24 +411,21 @@ function showReaderOverlay(profile) {
         added = true;
       }
     });
-
     if (!added) {
-      const emptyMsg = document.createElement("p");
-      emptyMsg.textContent = "Could not extract readable text from this page.";
-      target.appendChild(emptyMsg);
+      const msg = document.createElement("p");
+      msg.textContent = "Could not extract readable text from this page.";
+      target.appendChild(msg);
     }
   }
 
-  // Setup close button listener
   document.getElementById("dysassist-close-reader").addEventListener("click", () => {
     hideReaderOverlay();
-    // Disable in preferences directly in storage
     chrome.storage.local.get("userProfile", result => {
-      const current = result.userProfile;
-      if (current && current.preferences) {
-        current.preferences.readingModeEnabled = false;
-        current.updatedAt = new Date().toISOString();
-        chrome.storage.local.set({ userProfile: current });
+      const cur = result.userProfile;
+      if (cur?.preferences) {
+        cur.preferences.readingModeEnabled = false;
+        cur.updatedAt = new Date().toISOString();
+        chrome.storage.local.set({ userProfile: cur });
       }
     });
   });
@@ -533,14 +436,13 @@ function hideReaderOverlay() {
   document.body.style.removeProperty("overflow");
 }
 
+// ─── Main orchestrator ────────────────────────────────────────────────────────
 async function processPage() {
   if (isApplyingChanges) return;
   isApplyingChanges = true;
 
   if (observer) {
-    try {
-      observer.disconnect();
-    } catch (e) {}
+    try { observer.disconnect(); } catch (e) {}
   }
 
   try {
@@ -561,12 +463,11 @@ async function processPage() {
     }
 
     const theme = getTheme(profile);
-    const css = buildReadingCss(theme);
-
+    const css   = buildReadingCss(theme);
     installLocalStyle(css);
     requestScriptingCss(css);
     ensureTintOverlay();
-    
+
     if (profile.preferences.hideMedia) {
       removeMedia();
     } else {
@@ -605,14 +506,32 @@ async function processPage() {
     if (profile.preferences) {
       window.DysAssistTTS?.updateSettings(profile.preferences);
     }
+
+    // ── Week 4 — Honnashree: Notification UI trigger ──────────────────────
+    if (window.DysAssistNotify) {
+      const NOTIFY_THRESHOLD    = 0.6;
+      const NOTIFY_COOLDOWN_MS  = 5 * 60 * 1000; // 5 minutes between offers
+
+      const score = profile.difficultyScore ?? 0;
+      const lastOfferedAny = Object.values(profile.interventionHistory ?? {})
+        .reduce((latest, h) => Math.max(latest, h.lastOffered ?? 0), 0);
+      const cooldownOver = (Date.now() - lastOfferedAny) > NOTIFY_COOLDOWN_MS;
+
+      if (score >= NOTIFY_THRESHOLD && cooldownOver && !window.DysAssistNotify.isShowing()) {
+        window.DysAssistNotify.offer("high_difficulty_score");
+      }
+
+      // Attach "Show original" toggles to any simplified paragraphs Manoj's
+      // /simplify pipeline may have added (marked data-da-simplified="true")
+      window.DysAssistNotify.refreshOriginalToggles();
+    }
+    // ── end Week 4 ────────────────────────────────────────────────────────
+
   } finally {
     isApplyingChanges = false;
     if (observer) {
       try {
-        observer.observe(document.documentElement, {
-          childList: true,
-          subtree: true
-        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
       } catch (e) {}
     }
   }
@@ -638,10 +557,7 @@ if (document.readyState === "loading") {
 }
 
 observer = new MutationObserver(scheduleReapply);
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true
-});
+observer.observe(document.documentElement, { childList: true, subtree: true });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local" && changes.userProfile) {
@@ -652,109 +568,72 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "TTS_TEST") {
     const firstPara = document.querySelector("p, [data-da-chunk]");
-    if (firstPara) {
-      window.DysAssistTTS?.speak(firstPara);
-    }
+    if (firstPara) window.DysAssistTTS?.speak(firstPara);
   }
 });
-function c(){const t=document.querySelectorAll("p, article p, .mw-parser-output p, [class*='article'] p, [class*='content'] p, [class*='body'] p, h1, h2, h3, li"),e=[];let o=0;return t.forEach(n=>{const i=(n.innerText||n.textContent||"").trim().split(/\s+/).filter(Boolean).length;i<15||n.dataset.readId||(n.dataset.readId=`r-${o++}`,n.dataset.wordCount=String(i),e.push(n))}),console.log(`[DysAssist] Tagged ${e.length} readable elements`),e}async function p(){return new Promise(t=>{try{chrome.runtime.sendMessage({type:"GET_PROFILE"},e=>{if(chrome.runtime.lastError){console.log("[DysAssist] Runtime error:",chrome.runtime.lastError.message),t(null);return}t((e==null?void 0:e.profile)??null)})}catch{t(null)}})}function m(t){var d;(d=document.getElementById("dysassist-baseline"))==null||d.remove();const e=t.preferences;if(!e)return;const o=e.font==="lexend"?"'Lexend', sans-serif":e.font==="opendyslexic"?"'OpenDyslexic', sans-serif":"inherit",a={cream:"#fdf6e3",blue:"#e8f4fd",green:"#edfaf1",yellow:"#fefce8",none:""}[e.backgroundTint??"none"]??"",u={normal:"1.6",relaxed:"1.8",loose:"2.1"}[e.lineHeight??"relaxed"]??"1.8",f={normal:"0.01em",wide:"0.05em",wider:"0.09em"}[e.letterSpacing??"wide"]??"0.05em";if(e.font==="lexend"&&!document.getElementById("dysassist-font")){const s=document.createElement("link");s.id="dysassist-font",s.rel="stylesheet",s.href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap",document.head.appendChild(s)}const r=document.createElement("style");r.id="dysassist-baseline",r.textContent=`
-    /* DysAssist — baseline adaptations */
-    [data-read-id] {
-      font-family: ${o} !important;
-      line-height: ${u} !important;
-      letter-spacing: ${f} !important;
-      word-spacing: 0.12em !important;
-      ${a?`background-color: ${a} !important; padding: 2px 4px !important; border-radius: 3px !important;`:""}
-    }
-  `,document.head.appendChild(r),console.log("[DysAssist] Adaptations applied — font:",e.font,"tint:",e.backgroundTint)}async function l(){const t=await p();if(!t){console.log("[DysAssist] No profile — skipping");return}console.log("[DysAssist] Profile loaded, mode:",t.mode);const e=c();t.mode==="declared_dyslexic"&&e.length>0&&m(t)}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",l):l();const g=new MutationObserver(()=>{c().length>0&&p().then(e=>{(e==null?void 0:e.mode)==="declared_dyslexic"&&m(e)})});g.observe(document.body,{childList:!0,subtree:!0});
 
-  // =============================================================================
-// WEEK 3 — Honnashree: lightweight session recorder for the Profile Summary tab
-// =============================================================================
-// This is a SEPARATE, SELF-CONTAINED snippet — paste it at the very end of
-// content.js (above the dead minified blob, which should be deleted — see
-// note below). It does NOT touch any of Manoj's existing logic.
-//
-// It estimates reading speed for the current page visit and saves it via
-// chrome.storage.local directly under profile.sessionHistory / domainStats,
-// matching the shape used in popup.js's renderSummaryTab().
-//
-// NOTE: content.js currently has a large minified line appended after the
-// `chrome.runtime.onMessage.addListener(...)` block (starts with
-// `function c(){const t=document.querySelectorAll(...`). That is leftover
-// dead code from an old build and is never executed — manifest.json only
-// loads this file as "content.js" and nothing imports that blob. Safe to
-// delete it; flagging here rather than removing it myself since it's not
-// my file this week.
-
+// ── Week 3 — Honnashree: lightweight session recorder ─────────────────────
 (function () {
   const PROFILE_KEY = "userProfile";
-  const pageStart = Date.now();
+  const pageStart   = Date.now();
 
   function getTaggedWordCount() {
-    // Re-use whatever paragraph tagging already ran (data-read-id or data-da-chunk)
-    const nodes = document.querySelectorAll("[data-read-id], [data-da-chunk]");
     let total = 0;
-    nodes.forEach((el) => {
-      const text = el.innerText || el.textContent || "";
-      total += text.trim().split(/\s+/).filter(Boolean).length;
+    document.querySelectorAll("[data-read-id], [data-da-chunk]").forEach(el => {
+      total += (el.innerText || el.textContent || "").trim().split(/\s+/).filter(Boolean).length;
     });
     return total;
   }
 
   function recordSession(profile, record) {
     if (!profile.sessionHistory) profile.sessionHistory = [];
-    if (!profile.domainStats) profile.domainStats = {};
+    if (!profile.domainStats)    profile.domainStats    = {};
 
     profile.sessionHistory.push(record);
     if (profile.sessionHistory.length > 200) {
       profile.sessionHistory = profile.sessionHistory.slice(-200);
     }
 
-    const existing = profile.domainStats[record.domain];
-    const visits = (existing?.visits ?? 0) + 1;
-    const avgReadingSpeedWpm = existing
-      ? (existing.avgReadingSpeedWpm * existing.visits + record.readingSpeedWpm) / visits
-      : record.readingSpeedWpm;
-    const avgDifficultyScore = existing
-      ? (existing.avgDifficultyScore * existing.visits + record.difficultyScore) / visits
-      : record.difficultyScore;
-
+    const ex     = profile.domainStats[record.domain];
+    const visits = (ex?.visits ?? 0) + 1;
     profile.domainStats[record.domain] = {
-      domain: record.domain,
+      domain:               record.domain,
       visits,
-      avgReadingSpeedWpm,
-      avgDifficultyScore,
-      interventionsOffered: existing?.interventionsOffered ?? 0,
-      interventionsAccepted: existing?.interventionsAccepted ?? 0,
-      lastVisited: record.timestamp,
+      avgReadingSpeedWpm:   ex ? (ex.avgReadingSpeedWpm * ex.visits + record.readingSpeedWpm) / visits : record.readingSpeedWpm,
+      avgDifficultyScore:   ex ? (ex.avgDifficultyScore * ex.visits + record.difficultyScore) / visits : record.difficultyScore,
+      interventionsOffered: ex?.interventionsOffered ?? 0,
+      interventionsAccepted:ex?.interventionsAccepted ?? 0,
+      lastVisited:          record.timestamp,
     };
-
     profile.updatedAt = new Date().toISOString();
     return profile;
   }
 
   window.addEventListener("beforeunload", () => {
-    const seconds = (Date.now() - pageStart) / 1000;
+    const seconds    = (Date.now() - pageStart) / 1000;
     const totalWords = getTaggedWordCount();
-    if (seconds < 3 || totalWords < 30) return; // ignore drive-by visits
+    if (seconds < 3 || totalWords < 30) return;
 
     const estimatedWpm = Math.min(400, Math.round((totalWords / seconds) * 60));
-
     try {
-      chrome.storage.local.get(PROFILE_KEY, (result) => {
+      chrome.storage.local.get(PROFILE_KEY, result => {
         const profile = result[PROFILE_KEY];
         if (!profile) return;
         const updated = recordSession(profile, {
-          domain: location.hostname,
-          timestamp: Date.now(),
-          readingSpeedWpm: estimatedWpm,
-          difficultyScore: profile.difficultyScore,
+          domain:           location.hostname,
+          timestamp:        Date.now(),
+          readingSpeedWpm:  estimatedWpm,
+          difficultyScore:  profile.difficultyScore,
         });
         chrome.storage.local.set({ [PROFILE_KEY]: updated });
       });
-    } catch {
-      // extension context may already be torn down on unload — safe to ignore
-    }
+    } catch {}
   });
 })();
+
+// ── Week 4 — refresh original-text toggles when storage changes ────────────
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "local" && changes.userProfile && window.DysAssistNotify) {
+    window.DysAssistNotify.refreshOriginalToggles();
+  }
+});
