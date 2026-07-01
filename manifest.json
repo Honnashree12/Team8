@@ -32,6 +32,7 @@
         "notificationUI.js",
         "vocabularyTooltips.js",
         "simplifyText.js",
+        "signalCollector.js",
         "content.js"
       ],
       "run_at": "document_idle"

@@ -198,30 +198,68 @@ window.DysAssistNotify = (() => {
     });
   }
 
-  // Records the outcome into profile.interventionHistory, keyed by intervention type.
-  // Shape matches what Saanvi's feedback-weighting module expects (Week 4 spec):
-  // { level, lastOffered, lastAction: "accepted"|"dismissed"|"ignored", weight }
-  async function recordOutcome(key, action) {
+  // ─── Week 4 (Saanvi): rich feedback recording ─────────────────────────────
+  // Records the outcome into profile.interventionHistory with full metadata:
+  // difficultyScoreAtTime, per-action counts, quick-dismiss telemetry.
+  // Also forwards to background.js for authoritative domain-learning.
+  async function recordOutcome(key, action, quickDismiss = false) {
     const profile = await getProfile();
     if (!profile) return;
     if (!profile.interventionHistory) profile.interventionHistory = {};
 
-    const existing = profile.interventionHistory[key] ?? { level: 1, lastOffered: Date.now(), lastAction: null, weight: 0.5 };
+    const now = Date.now();
+    const existing = profile.interventionHistory[key] ?? {
+      level: key === "tier3" ? 3 : key === "tier2" ? 2 : 1,
+      lastOffered: now,
+      lastAction: null,
+      weight: 0.5,
+      acceptCount: 0,
+      dismissCount: 0,
+      ignoreCount: 0,
+      difficultyScoreAtTime: profile.difficultyScore ?? 0.5,
+    };
 
-    // Lightweight local weight nudge — Saanvi's module is the source of truth long-term,
-    // this just keeps the UI's own history readable until that module lands.
+    // Weight nudge (background does authoritative update; this keeps local history consistent)
     let weight = existing.weight ?? 0.5;
-    if (action === "accepted") weight = Math.min(1, weight + 0.1);
-    if (action === "dismissed") weight = Math.max(0, weight - 0.1);
+    if (action === "accepted") weight = Math.min(1, weight + 0.15);
+    else if (action === "dismissed") {
+      weight = Math.max(0, weight - 0.15);
+      if (quickDismiss) weight = Math.min(1, weight + 0.05); // partial restore for false-positive
+    } else if (action === "ignored") {
+      weight = Math.max(0, weight - 0.05);
+    }
 
     profile.interventionHistory[key] = {
-      level: existing.level,
-      lastOffered: existing.lastOffered,
+      ...existing,
       lastAction: action,
+      lastOffered: now,
       weight,
+      acceptCount:  (existing.acceptCount  ?? 0) + (action === "accepted"  ? 1 : 0),
+      dismissCount: (existing.dismissCount ?? 0) + (action === "dismissed" ? 1 : 0),
+      ignoreCount:  (existing.ignoreCount  ?? 0) + (action === "ignored"   ? 1 : 0),
+      // difficultyScoreAtTime is saved on dismissal so the decision agent can re-offer
+      // only when the score rises ≥ 0.15 above the dismissal baseline.
+      difficultyScoreAtTime: action === "dismissed"
+        ? (profile.difficultyScore ?? existing.difficultyScoreAtTime ?? 0.5)
+        : existing.difficultyScoreAtTime,
+      quickDismissCount: (existing.quickDismissCount ?? 0) + (quickDismiss ? 1 : 0),
     };
     profile.updatedAt = new Date().toISOString();
     await saveProfile(profile);
+
+    // Forward to background for domain-learning & neural scorer update
+    try {
+      chrome.runtime.sendMessage({
+        type: "RECORD_INTERVENTION_FEEDBACK",
+        payload: {
+          tier: key,
+          action,
+          domain: location.hostname,
+          score: profile.difficultyScore ?? 0.5,
+          quickDismiss,
+        },
+      });
+    } catch (_) { /* service worker may be inactive — background will catch up on next load */ }
   }
 
   // ─── Soft-dismiss timer ─────────────────────────────────────────────────
@@ -276,8 +314,12 @@ window.DysAssistNotify = (() => {
     return bannerEl;
   }
 
+  // Track when the banner became visible — used to detect quick dismissals (< 5 s)
+  let bannerShownAt = null;
+
   function showBanner() {
     buildBanner();
+    bannerShownAt = Date.now();
     requestAnimationFrame(() => bannerEl.classList.add("da-notify-visible"));
   }
 
@@ -313,13 +355,14 @@ window.DysAssistNotify = (() => {
     if (!currentInterventionKey) return;
     const key = currentInterventionKey;
     clearSoftDismissTimer();
-    await recordOutcome(key, "dismissed");
+    // Quick dismiss: user closed within 5 seconds of the banner appearing.
+    // This is a false-positive signal — penalise less and note in telemetry.
+    const quickDismiss = bannerShownAt !== null && (Date.now() - bannerShownAt) < 5000;
+    bannerShownAt = null;
+    await recordOutcome(key, "dismissed", quickDismiss);
     hideBanner();
   }
-
-  // Applies a sensible baseline adjustment when the user accepts.
-  // This intentionally stays conservative — Tier 1 typography only —
-  // since Tier 2/3 (chunking, simplification) are owned by Manoj/Saanvi.
+  // Applies adjustments when the user accepts.
   async function applyAdjustments(key) {
     const profile = await getProfile();
     if (!profile) return;
@@ -332,6 +375,18 @@ window.DysAssistNotify = (() => {
     profile.preferences.backgroundTint = profile.preferences.backgroundTint && profile.preferences.backgroundTint !== "none"
       ? profile.preferences.backgroundTint
       : "cream";
+
+    // If they accepted Tier 2, enable structural interventions
+    if (key === "tier2") {
+      profile.preferences.chunkingEnabled = true;
+      profile.preferences.rulerEnabled = true;
+      profile.preferences.focusEnabled = true;
+    }
+    // If they accepted Tier 3, enable full assistance
+    if (key === "tier3") {
+      profile.preferences.vocabEnabled = true;
+      profile.preferences.ttsEnabled = true;
+    }
 
     profile.updatedAt = new Date().toISOString();
     await saveProfile(profile);

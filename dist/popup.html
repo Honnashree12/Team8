@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DysAssist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Deep Dark Dashboard Theme */
+    @font-face {
+      font-family: 'OpenDyslexic';
+      src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/dist/OpenDyslexic-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      margin: 0;
+      width: 320px;
+      background-color: #0d0f17;
+      color: #ffffff;
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      box-sizing: border-box;
+      transition: font-family 0.15s ease;
+    }
+
+    body.font-lexend {
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body.font-opendyslexic {
+      font-family: 'OpenDyslexic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    #popup-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .logo-icon {
+      font-size: 20px;
+    }
+
+    .logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Status Card Badge */
+    .status-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #0082f0;
+    }
+
+    /* Master Toggle Group */
+    .master-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .master-toggle-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Sleek Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #1e293b;
+      transition: .25s;
+      border-radius: 22px;
+      border: 1px solid #334155;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: #0082f0;
+      border-color: #0082f0;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    /* Reading Profiles Row */
+    .cards-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .mode-card {
+      background: #161925;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-card:hover {
+      background: #1c2030;
+      border-color: #334155;
+    }
+
+    .mode-card.active {
+      border-color: #0082f0;
+      background: rgba(0, 130, 240, 0.08);
+    }
+
+    .mode-emoji {
+      font-size: 18px;
+    }
+
+    .mode-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: #94a3b8;
+      line-height: 1.2;
+    }
+
+    .mode-card.active .mode-label {
+      color: #ffffff;
+    }
+
+    /* Font Selection Cards */
+    .font-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .font-card {
+      background: #161925;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .font-card:hover {
+      background: #1c2030;
+      border-color: #334155;
+    }
+
+    .font-card.active {
+      border-color: #0082f0;
+      background: rgba(0, 130, 240, 0.08);
+    }
+
+    .font-preview {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .font-name-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .font-name {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .font-sub {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    .font-lexend {
+      font-family: 'Lexend', sans-serif;
+    }
+
+    .font-opendyslexic {
+      font-family: 'OpenDyslexic', sans-serif;
+    }
+
+    /* Sliders Card Group */
+    .sliders-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .slider-label {
+      color: #cbd5e1;
+    }
+
+    .slider-value {
+      color: #0082f0;
+      background: rgba(0, 130, 240, 0.12);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    /* Custom Styled Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+           appearance: none;
+      width: 100%;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 9999px;
+      outline: none;
+      margin: 6px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0082f0;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0, 130, 240, 0.4);
+      border: 2px solid #0d0f17;
+      -webkit-transition: transform 0.1s ease;
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* Color Overlay Selector Card */
+    .overlay-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .overlay-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .overlay-main-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .overlay-sub-title {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    .overlay-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid #1e293b;
+      padding-top: 10px;
+      transition: all 0.25s ease;
+    }
+
+    .overlay-content.hidden {
+      display: none;
+    }
+
+    .swatches-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .swatch-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .swatch-btn:hover {
+      transform: scale(1.15);
+    }
+
+    .swatch-btn.active {
+      border-color: #0082f0;
+      box-shadow: 0 0 6px rgba(0, 130, 240, 0.4);
+    }
+
+    .swatch-check {
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    /* Footer Row */
+    .footer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .footer-btn {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .footer-btn-reset {
+      color: #ef4444;
+      flex-grow: 1;
+    }
+
+    .footer-btn-reset:hover {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .footer-btn-settings {
+      color: #cbd5e1;
+      width: 32px;
+      padding: 8px 0;
+    }
+
+    .footer-btn-settings:hover {
+      background: #1c2030;
+      border-color: #334155;
+      color: #ffffff;
+    }
+
+    /* ── Week 3 additions ──────────────────────────────────────────────── */
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 7px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .tab-btn:hover {
+      color: #cbd5e1;
+    }
+
+    .tab-btn.active {
+      background: #0082f0;
+      color: #ffffff;
+    }
+
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    /* Summary stat cards */
+    .summary-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .summary-stat-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .summary-stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .summary-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0082f0;
+    }
+
+    .summary-stat-value .unit {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: 2px;
+    }
+
+    /* Acceptance bar card */
+    .acceptance-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .acceptance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .acceptance-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .acceptance-pct {
+      font-size: 12px;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    .acceptance-track {
+      height: 5px;
+      background: #1e293b;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .acceptance-fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    .acceptance-sub {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    /* Domain list rows (used in both Summary "top difficult" and Domains tab) */
+    .domain-row {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .domain-row:hover {
+      border-color: #334155;
+    }
+
+    .domain-row-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .domain-row-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .domain-row-sub {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .domain-score-pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
+    .domain-score-low { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .domain-score-mid { background: rgba(234,179,8,0.12); color: #eab308; }
+    .domain-score-high { background: rgba(249,115,22,0.12); color: #f97316; }
+    .domain-score-crit { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+    .domain-current-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0082f0;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      font-size: 10px;
+      color: #64748b;
+      font-style: italic;
+      text-align: center;
+      padding: 14px 0;
+    }
+
+    /* Intervention history rows */
+    .history-row {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-row-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-transform: capitalize;
+    }
+
+    .history-row-sub {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .history-status {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+
+    .history-accepted { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .history-dismissed { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .history-pending { background: #1e293b; color: #64748b; }
+
+    /* Domain settings — expandable detail panel */
+    .domain-detail {
+      background: #0d0f17;
+      border-top: 1px solid #1e293b;
+      padding: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .domain-detail.open {
+      display: flex;
+    }
+
+    .domain-detail-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .domain-detail-stat {
+      background: #161925;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .domain-detail-stat-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .domain-detail-stat-label {
+      font-size: 8px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .domain-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .domain-detail-row-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .sensitivity-note {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .clear-override-btn {
+      font-size: 9px;
+      color: #0082f0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    .clear-override-btn:hover {
+      text-decoration: underline;
+    }
+
+    .domain-pause-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Reset confirmation modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      width: 270px;
+      text-align: center;
+    }
+
+    .modal-icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .modal-text {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .modal-btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 9px 0;
+      border-radius: 9px;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1px solid #1e293b;
+      transition: all 0.15s ease;
+    }
+
+    .modal-btn-cancel {
+      background: #1c2030;
+      color: #cbd5e1;
+    }
+
+    .modal-btn-cancel:hover {
+      background: #232838;
+    }
+
+    .modal-btn-danger {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+    }
+
+    .modal-btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .domain-remove-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+
+    .domain-remove-btn:hover {
+      color: #ef4444;
+    }
+
+    /* ── Week 5 — Honnashree: error states, offline fallback, popup polish ── */
+
+    /* Inline banners (restricted page, offline AI, storage errors) */
+    .status-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px solid;
+    }
+
+    .status-banner.visible {
+      display: flex;
+    }
+
+    .status-banner-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: -1px;
+    }
+
+    .status-banner-text b {
+      display: block;
+      font-size: 10px;
+      margin-bottom: 1px;
+    }
+
+    .status-banner-warn {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .status-banner-info {
+      background: rgba(0, 130, 240, 0.08);
+      border-color: rgba(0, 130, 240, 0.3);
+      color: #7dc4ff;
+    }
+
+    .status-banner-error {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    /* Toast notifications — bottom-anchored, auto-dismiss */
+    #toast-stack {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #161925;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 10px;
+      color: #e2e8f0;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-error { border-color: rgba(239, 68, 68, 0.4); }
+    .toast-success { border-color: rgba(34, 197, 94, 0.4); }
+
+    /* AI status row (System status card) */
+    .ai-status-card {
+      background: #161925;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .ai-status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .ai-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #64748b;
+    }
+
+    .ai-status-dot.online { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); }
+    .ai-status-dot.offline { background: #64748b; }
+    .ai-status-dot.checking { background: #f59e0b; animation: pulse-dot 1.1s ease-in-out infinite; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .ai-status-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .ai-status-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .ai-status-sub {
+      font-size: 9px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ai-status-retry {
+      background: #1c2030;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 7px;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 5px 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .ai-status-retry:hover {
+      background: #232838;
+      color: #fff;
+    }
+
+    /* Color swatch input used for Ruler Color (Week 5 — settings completeness) */
+    .color-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .color-input-row input[type="color"] {
+      width: 28px;
+      height: 22px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .color-input-row span {
+      font-size: 9px;
+      color: #64748b;
+      font-family: monospace;
+    }
+
+    /* Skeleton loading state shown before init() resolves */
+    #popup-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 60px 0;
+      color: #64748b;
+      font-size: 11px;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #1e293b;
+      border-top-color: #0082f0;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script type="module" crossorigin src="/popup.js"></script>
+  <link rel="modulepreload" crossorigin href="/chunks/modulepreload-polyfill-Dezn_h7o.js">
+</head>
+
+<body class="font-lexend">
+
+  <!-- Week 5 — Loading skeleton, shown until init() resolves or fails -->
+  <div id="popup-loading">
+    <div class="loading-spinner"></div>
+    <div>Loading your profile…</div>
+  </div>
+
+  <div id="popup-container" style="display:none;">
+
+    <!-- Header Section -->
+    <div class="header">
+      <div class="logo-section" id="open-onboarding" title="Go to onboarding">
+        <span class="logo-icon">📖</span>
+        <span class="logo-title">DysAssist</span>
+      </div>
+      <div class="header-controls">
+        <div class="status-card" id="difficulty-badge">Score: --</div>
+        <div class="master-toggle-group">
+          <span class="master-toggle-label">Active</span>
+          <label class="switch">
+            <input type="checkbox" id="master-toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week 5 — Restricted-page banner: shown when the current tab can't run a content script -->
+    <div class="status-banner status-banner-warn" id="restricted-page-banner">
+      <span class="status-banner-icon">🚧</span>
+      <div class="status-banner-text">
+        <b>DysAssist can't run on this page</b>
+        Open a regular website (like a news article or Wikipedia) to see adaptations applied. Your settings are still saved.
+      </div>
+    </div>
+
+    <!-- Week 5 — Storage error banner: shown when chrome.storage read/write fails -->
+    <div class="status-banner status-banner-error" id="storage-error-banner">
+      <span class="status-banner-icon">⚠️</span>
+      <div class="status-banner-text">
+        <b>Couldn't save your changes</b>
+        <span id="storage-error-detail">Chrome storage is unavailable right now. Try reopening the popup.</span>
+      </div>
+    </div>
+
+    <!-- Reading Profiles Section -->
+    <div>
+      <div class="section-title">Reading Profile</div>
+      <div class="cards-row">
+        <div class="mode-card" id="card-dyslexic">
+          <span class="mode-emoji">🧠</span>
+          <span class="mode-label">Full Assist</span>
+        </div>
+        <div class="mode-card" id="card-occasional">
+          <span class="mode-emoji">📚</span>
+          <span class="mode-label">Smart Help</span>
+        </div>
+        <div class="mode-card" id="card-passive">
+          <span class="mode-emoji">👀</span>
+          <span class="mode-label">Passive</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week 5 — AI backend status (offline / no-API-key fallback visibility) -->
+    <div class="ai-status-card" id="ai-status-card" title="AI-powered simplify & define features">
+      <div class="ai-status-left">
+        <span class="ai-status-dot checking" id="ai-status-dot"></span>
+        <div class="ai-status-text">
+          <span class="ai-status-title">AI Assist</span>
+          <span class="ai-status-sub" id="ai-status-sub">Checking…</span>
+        </div>
+      </div>
+      <button class="ai-status-retry" id="ai-status-retry" title="Check again">↻ Retry</button>
+    </div>
+
+    <!-- Week 3 — Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-btn-dashboard" data-tab="dashboard">🏠 Dashboard</button>
+      <button class="tab-btn" id="tab-btn-summary" data-tab="summary">📊 Summary</button>
+      <button class="tab-btn" id="tab-btn-domains" data-tab="domains">🌐 Sites</button>
+    </div>
+
+    <!-- Dashboard Tab Panel (wraps all existing controls) -->
+    <div class="tab-panel active" id="tab-panel-dashboard">
+
+    <!-- Font Selection Section -->
+    <div>
+      <div class="section-title">Reading Font</div>
+      <div class="font-row">
+        <div class="font-card" id="font-lexend">
+          <span class="font-preview font-lexend">Aa</span>
+          <div class="font-name-col">
+            <span class="font-name font-lexend">Lexend</span>
+            <span class="font-sub font-lexend">Primary</span>
+          </div>
+        </div>
+        <div class="font-card" id="font-opendyslexic">
+          <span class="font-preview font-opendyslexic">Aa</span>
+          <div class="font-name-col">
+            <span class="font-name font-opendyslexic">OpenDys</span>
+            <span class="font-sub font-opendyslexic">Secondary</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typography Sliders Section -->
+    <div class="sliders-card">
+      <!-- Letter Spacing -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Letter Spacing</span>
+          <span class="slider-value" id="letter-spacing-val">Normal</span>
+        </div>
+        <input type="range" id="letter-spacing-slider" min="0" max="0.15" step="0.01" value="0">
+      </div>
+      <!-- Line Height -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Line Height</span>
+          <span class="slider-value" id="line-height-val">Normal</span>
+        </div>
+        <input type="range" id="line-height-slider" min="1.0" max="2.5" step="0.1" value="1.4">
+      </div>
+    </div>
+
+    <!-- Color Overlay Section -->
+    <div class="overlay-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Overlay Tint</span>
+          <span class="overlay-sub-title">Reduce contrast and eye strain</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="overlay-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="overlay-content">
+        <!-- Color Swatches -->
+        <div class="swatches-row">
+          <button class="swatch-btn" id="swatch-none" style="background-color: #ffffff;" title="No Tint"></button>
+          <button class="swatch-btn" id="swatch-cream" style="background-color: #fdf6e3;" title="Cream"></button>
+          <button class="swatch-btn" id="swatch-blue" style="background-color: #e8f4fd;" title="Sky Blue"></button>
+          <button class="swatch-btn" id="swatch-green" style="background-color: #edfaf1;" title="Mint Green"></button>
+          <button class="swatch-btn" id="swatch-yellow" style="background-color: #fefce8;" title="Warm Yellow"></button>
+        </div>
+        <!-- Opacity Slider -->
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Tint Strength</span>
+            <span class="slider-value" id="opacity-val" style="font-size: 9px;">18%</span>
+          </div>
+          <input type="range" id="opacity-slider" min="0.05" max="0.50" step="0.01" value="0.18">
+        </div>
+      </div>
+    </div>
+
+    <!-- Paragraph Chunking Card Section -->
+    <div class="overlay-card" id="chunking-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Paragraph Chunking</span>
+          <span class="overlay-sub-title">Split long paragraphs into short blocks</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="chunking-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="chunking-content">
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Sentences per chunk</span>
+            <span class="slider-value" id="chunking-val" style="font-size: 9px;">3</span>
+          </div>
+          <input type="range" id="chunking-slider" min="1" max="6" step="1" value="3">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading Ruler Card Section -->
+    <div class="overlay-card" id="ruler-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Reading Ruler</span>
+          <span class="overlay-sub-title">Follows mouse to guide eye tracking</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="ruler-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="ruler-content">
+        <!-- Ruler Height Slider -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Height</span>
+            <span class="slider-value" id="ruler-height-val" style="font-size: 9px;">36px</span>
+          </div>
+          <input type="range" id="ruler-height-slider" min="10" max="100" step="2" value="36">
+        </div>
+        <!-- Ruler Opacity Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Opacity</span>
+            <span class="slider-value" id="ruler-opacity-val" style="font-size: 9px;">12%</span>
+          </div>
+          <input type="range" id="ruler-opacity-slider" min="0.05" max="0.50" step="0.01" value="0.12">
+        </div>
+        <!-- Ruler Mode Selector -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Mode</span>
+          </div>
+          <select id="ruler-mode-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="follow">Follow mouse position</option>
+            <option value="line">Snap to nearest text line</option>
+          </select>
+        </div>
+        <!-- Week 5 — Ruler Color picker (was stored in prefs but had no UI control) -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Ruler Color</span>
+          </div>
+          <div class="color-input-row">
+            <input type="color" id="ruler-color-picker" value="#0082f0">
+            <span id="ruler-color-hex">#0082f0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focus Mode Card Section -->
+    <div class="overlay-card" id="focus-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Focus Mode</span>
+          <span class="overlay-sub-title">Highlight active text block and dim others</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="focus-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="focus-content">
+        <!-- Focus Style Selector -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Focus Style</span>
+          </div>
+          <select id="focus-style-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="both">Dim and Blur other blocks</option>
+            <option value="dim">Dim other blocks only</option>
+            <option value="blur">Blur other blocks only</option>
+          </select>
+        </div>
+        <!-- Focus Blur Slider -->
+        <div class="slider-group" id="focus-blur-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Blur Strength</span>
+            <span class="slider-value" id="focus-blur-val" style="font-size: 9px;">4px</span>
+          </div>
+          <input type="range" id="focus-blur-slider" min="0" max="12" step="1" value="4">
+        </div>
+        <!-- Focus Dim Opacity Slider -->
+        <div class="slider-group" id="focus-dim-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Dim Intensity</span>
+            <span class="slider-value" id="focus-dim-val" style="font-size: 9px;">55%</span>
+          </div>
+          <input type="range" id="focus-dim-slider" min="0.10" max="0.90" step="0.05" value="0.55">
+        </div>
+      </div>
+    </div>
+
+    <!-- Text-to-Speech Card Section -->
+    <div class="overlay-card" id="tts-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Text-to-Speech</span>
+          <span class="overlay-sub-title">Read pages aloud with word highlighting</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tts-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="tts-content">
+        <!-- Voice Select -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Voice</span>
+          </div>
+          <select id="tts-voice-select" style="background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding: 4px; font-size: 10px; font-family: inherit; margin-top: 4px; outline: none; width: 100%;">
+            <option value="">Default Voice</option>
+          </select>
+        </div>
+        <!-- Speech Rate Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Speed</span>
+            <span class="slider-value" id="tts-rate-val" style="font-size: 9px;">1.0x</span>
+          </div>
+          <input type="range" id="tts-rate-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <!-- Speech Pitch Slider -->
+        <div class="slider-group" style="margin-top: 8px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Pitch</span>
+            <span class="slider-value" id="tts-pitch-val" style="font-size: 9px;">1.0</span>
+          </div>
+          <input type="range" id="tts-pitch-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <!-- Word Highlighting Toggle -->
+        <div class="overlay-header" style="margin-top: 8px; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <div class="overlay-title-group">
+            <span class="overlay-main-title" style="font-size: 10px; color: #cbd5e1;">Highlight Spoken Word</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="tts-highlight-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <!-- Test Button -->
+        <button id="tts-test-btn" class="footer-btn" style="width: 100%; margin-top: 10px; background: rgba(0, 130, 240, 0.15); border-color: rgba(0, 130, 240, 0.3); color: #0082f0;">
+          🔊 Test Speech
+        </button>
+      </div>
+    </div>
+
+    <!-- Vocabulary Tooltips Card Section -->
+    <div class="overlay-card" id="vocab-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Vocabulary Tooltips</span>
+          <span class="overlay-sub-title">Highlight difficult words and show definitions</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="vocab-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="overlay-content hidden" id="vocab-content">
+        <div class="slider-group" style="margin-top: 4px;">
+          <div class="slider-header">
+            <span class="slider-label" style="color: #94a3b8; font-size: 10px;">Highlights per paragraph</span>
+            <span class="slider-value" id="vocab-val" style="font-size: 9px;">5</span>
+          </div>
+          <input type="range" id="vocab-slider" min="1" max="10" step="1" value="5">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reader Mode Card Section -->
+    <div class="overlay-card" id="reader-mode-card">
+      <div class="overlay-header">
+        <div class="overlay-title-group">
+          <span class="overlay-main-title">Distraction-free Reader</span>
+          <span class="overlay-sub-title">Clean reading layout strips ads</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="reader-mode-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    </div><!-- /tab-panel-dashboard -->
+
+    <!-- Week 3 — Profile Summary Tab Panel -->
+    <div class="tab-panel" id="tab-panel-summary">
+
+      <div class="summary-stats-row">
+        <div class="summary-stat-card">
+          <div class="summary-stat-label">Avg Reading Speed</div>
+          <div class="summary-stat-value" id="summary-avg-wpm">—<span class="unit">wpm</span></div>
+        </div>
+        <div class="summary-stat-card">
+          <div class="summary-stat-label">Avg Difficulty</div>
+          <div class="summary-stat-value" id="summary-avg-score">—<span class="unit">%</span></div>
+        </div>
+      </div>
+
+      <div class="acceptance-card">
+        <div class="acceptance-header">
+          <span class="acceptance-title">Intervention Acceptance</span>
+          <span class="acceptance-pct" id="summary-acceptance-pct">0%</span>
+        </div>
+        <div class="acceptance-track">
+          <div class="acceptance-fill" id="summary-acceptance-fill" style="width: 0%;"></div>
+        </div>
+        <div class="acceptance-sub" id="summary-acceptance-sub">0 accepted of 0 offered</div>
+      </div>
+
+      <div>
+        <div class="section-title">Top Difficult Sites</div>
+        <div id="summary-domains-list" style="display:flex; flex-direction:column; gap:6px;">
+          <div class="empty-state">No site data yet — keep browsing.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Intervention History</div>
+        <div id="summary-history-list" style="display:flex; flex-direction:column; gap:6px;">
+          <div class="empty-state">No interventions recorded yet.</div>
+        </div>
+      </div>
+
+      <div class="acceptance-sub" id="summary-footer-note" style="text-align:center;">
+        0 sessions tracked
+      </div>
+    </div><!-- /tab-panel-summary -->
+
+    <!-- Week 3 — Per-Domain Settings Tab Panel -->
+    <div class="tab-panel" id="tab-panel-domains">
+      <div class="section-title">Per-Domain Settings</div>
+      <div id="domains-list" style="display:flex; flex-direction:column; gap:6px;">
+        <div class="empty-state">No site data yet — visit a few pages first.</div>
+      </div>
+      <div class="acceptance-sub" style="text-align:center; margin-top: 4px;">
+        Sensitivity overrides are placeholders — wired into the real decision agent by the scorer module.
+      </div>
+    </div><!-- /tab-panel-domains -->
+
+    <!-- Footer Buttons -->
+    <div class="footer-row">
+      <button class="footer-btn footer-btn-reset" id="reset-btn">
+        <span>🗑️</span>
+        <span>Reset Settings</span>
+      </button>
+      <button class="footer-btn footer-btn-settings" id="settings-btn" title="Open Settings Panel">
+        <span>⚙️</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Week 3 — Reset Profile Confirmation Modal -->
+  <div class="modal-overlay" id="reset-modal-overlay">
+    <div class="modal-card" id="reset-modal-stage-warn">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-title">Reset your profile?</div>
+      <div class="modal-text">
+        This will permanently delete your onboarding mode, preferences, reading history,
+        per-domain settings, and intervention history. This cannot be undone.
+      </div>
+      <div class="modal-btn-row">
+        <button class="modal-btn modal-btn-cancel" id="reset-modal-cancel-1">Cancel</button>
+        <button class="modal-btn modal-btn-danger" id="reset-modal-continue">Continue</button>
+      </div>
+    </div>
+    <div class="modal-card" id="reset-modal-stage-confirm" style="display:none;">
+      <div class="modal-icon">🗑️</div>
+      <div class="modal-title">Are you absolutely sure?</div>
+      <div class="modal-text">
+        You'll need to go through onboarding again from scratch. All reading data on this device will be erased.
+      </div>
+      <div class="modal-btn-row">
+        <button class="modal-btn modal-btn-cancel" id="reset-modal-cancel-2">Keep my profile</button>
+        <button class="modal-btn modal-btn-danger" id="reset-modal-confirm">Yes, delete everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week 5 — Toast notification stack -->
+  <div id="toast-stack"></div>
+
+</body>
+
+</html>

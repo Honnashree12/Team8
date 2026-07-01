@@ -455,84 +455,132 @@ async function processPage() {
       return;
     }
 
+    const domain = window.location.hostname;
+    const domainSetting = profile.domainSettings?.find(d => d.domain === domain);
+    if (domainSetting?.paused) {
+      removeReadingTheme();
+      hideReaderOverlay();
+      return;
+    }
+
+    // Merge temporary adjustments based on historical score & accepted tiers
+    const mergedPreferences = { ...profile.preferences };
+
+    const isDyslexic = profile.mode === "declared_dyslexic";
+    const score = profile.difficultyScore ?? 0.1;
+
+    // Get thresholds adjusted for sensitivity
+    const sensitivity = domainSetting?.sensitivityOverride;
+    let t1 = 0.3, t2 = 0.5, t3 = 0.7;
+    if (sensitivity !== undefined) {
+      if (sensitivity <= 0.35) {
+        t1 = 0.45; t2 = 0.65; t3 = 0.85;
+      } else if (sensitivity > 0.65) {
+        t1 = 0.15; t2 = 0.35; t3 = 0.55;
+      }
+    }
+
+    const stats = profile.domainStats?.[domain];
+    const isDifficultDomain = stats && stats.visits >= 2 && stats.avgDifficultyScore >= 0.5;
+    const isHighSensitivity = sensitivity !== undefined && sensitivity > 0.65;
+
+    // Proactive Tier 1 (Typography)
+    if (isDyslexic || isDifficultDomain || isHighSensitivity || score >= t1) {
+      mergedPreferences.font = "lexend";
+      mergedPreferences.lineHeight = "relaxed";
+      mergedPreferences.letterSpacing = "wide";
+      mergedPreferences.backgroundTint = mergedPreferences.backgroundTint && mergedPreferences.backgroundTint !== "none"
+        ? mergedPreferences.backgroundTint
+        : "cream";
+    }
+
+    // Proactive Tier 2 (Structural)
+    const history = profile.interventionHistory || {};
+    const t2Accepted = history["tier2"]?.lastAction === "accepted";
+    if (score >= t2 && t2Accepted) {
+      mergedPreferences.chunkingEnabled = true;
+      mergedPreferences.rulerEnabled = true;
+      mergedPreferences.focusEnabled = true;
+    }
+
+    // Proactive Tier 3 (Full Assistance)
+    const t3Accepted = history["tier3"]?.lastAction === "accepted";
+    if (score >= t3 && t3Accepted) {
+      mergedPreferences.vocabEnabled = true;
+      mergedPreferences.ttsEnabled = true;
+      mergedPreferences.applyImmediately = true;
+      if (history["tier2"]?.lastAction !== "dismissed") {
+        mergedPreferences.chunkingEnabled = true;
+        mergedPreferences.rulerEnabled = true;
+        mergedPreferences.focusEnabled = true;
+      }
+    }
+
+    const activePrefs = mergedPreferences;
+
     extractReadableElements();
 
-    if (!profile.preferences || !shouldApplyReadingTheme(profile)) {
+    if (!activePrefs || (profile.mode !== "declared_dyslexic" && score < t1 && !isDifficultDomain && !isHighSensitivity)) {
       restoreHiddenMedia();
       hideReaderOverlay();
       removeReadingTheme();
       return;
     }
 
-    const theme = getTheme(profile);
+    const theme = getTheme({ preferences: activePrefs });
     const css   = buildReadingCss(theme);
     installLocalStyle(css);
     requestScriptingCss(css);
     ensureTintOverlay();
 
-    if (profile.preferences.hideMedia) {
+    if (activePrefs.hideMedia) {
       removeMedia();
     } else {
       restoreHiddenMedia();
     }
 
     // Handle Paragraph Chunking
-    if (profile.preferences.chunkingEnabled) {
-      window.DysAssistChunker?.chunkDocument(profile.preferences);
+    if (activePrefs.chunkingEnabled) {
+      window.DysAssistChunker?.chunkDocument(activePrefs);
     } else {
       window.DysAssistChunker?.reset();
     }
 
     // Handle Reading Ruler
-    if (profile.preferences.rulerEnabled) {
-      window.DysAssistRuler?.enable(profile.preferences);
+    if (activePrefs.rulerEnabled) {
+      window.DysAssistRuler?.enable(activePrefs);
     } else {
       window.DysAssistRuler?.disable();
     }
 
     // Handle Focus Mode
-    if (profile.preferences.focusEnabled) {
-      window.DysAssistFocus?.enable(profile.preferences);
+    if (activePrefs.focusEnabled) {
+      window.DysAssistFocus?.enable(activePrefs);
     } else {
       window.DysAssistFocus?.disable();
     }
 
     // Handle Reading Mode
-    if (profile.preferences.readingModeEnabled) {
+    if (activePrefs.readingModeEnabled) {
       showReaderOverlay(profile);
     } else {
       hideReaderOverlay();
     }
 
     // Handle Text-to-Speech Settings
-    if (profile.preferences) {
-      window.DysAssistTTS?.updateSettings(profile.preferences);
+    if (activePrefs) {
+      window.DysAssistTTS?.updateSettings(activePrefs);
     }
 
-    // ── Week 4 — Honnashree: Notification UI trigger ──────────────────────
+    // ── Week 4 — refresh original-text toggles if simplify module is active
     if (window.DysAssistNotify) {
-      const NOTIFY_THRESHOLD    = 0.6;
-      const NOTIFY_COOLDOWN_MS  = 5 * 60 * 1000; // 5 minutes between offers
-
-      const score = profile.difficultyScore ?? 0;
-      const lastOfferedAny = Object.values(profile.interventionHistory ?? {})
-        .reduce((latest, h) => Math.max(latest, h.lastOffered ?? 0), 0);
-      const cooldownOver = (Date.now() - lastOfferedAny) > NOTIFY_COOLDOWN_MS;
-
-      if (score >= NOTIFY_THRESHOLD && cooldownOver && !window.DysAssistNotify.isShowing()) {
-        window.DysAssistNotify.offer("high_difficulty_score");
-      }
-
-      // Attach "Show original" toggles to any simplified paragraphs Manoj's
-      // /simplify pipeline may have added (marked data-da-simplified="true")
       window.DysAssistNotify.refreshOriginalToggles();
     }
-    // ── end Week 4 ────────────────────────────────────────────────────────
 
     // Handle Vocabulary Tooltips Settings & Processing
-    if (profile.preferences) {
-      window.DysAssistVocab?.updateSettings(profile.preferences);
-      if (profile.preferences.vocabEnabled) {
+    if (activePrefs) {
+      window.DysAssistVocab?.updateSettings(activePrefs);
+      if (activePrefs.vocabEnabled) {
         window.DysAssistVocab?.enable();
       } else {
         window.DysAssistVocab?.reset();
@@ -540,8 +588,8 @@ async function processPage() {
     }
 
     // Handle AI Simplify text selection listener
-    if (profile.preferences) {
-      if (profile.preferences.applyImmediately !== false) {
+    if (activePrefs) {
+      if (activePrefs.applyImmediately !== false) {
         window.DysAssistSimplify?.enable();
       } else {
         window.DysAssistSimplify?.disable();
@@ -657,3 +705,44 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     window.DysAssistNotify.refreshOriginalToggles();
   }
 });
+
+// ── Week 3 — Saanvi: signal collector & feature pipeline interval ──────────
+(function () {
+  // Initialize signal collector
+  if (window.DysAssistSignals) {
+    window.DysAssistSignals.init();
+  }
+
+  // Periodic feature vector processing (every 30 seconds)
+  setInterval(() => {
+    if (!window.DysAssistSignals) return;
+    const fv = window.DysAssistSignals.getFeatureVector();
+    if (!fv) return;
+
+    // Send features to background script for processing
+    chrome.runtime.sendMessage({
+      type: "PROCESS_SESSION_FEATURES",
+      payload: fv
+    }, response => {
+      if (chrome.runtime.lastError) {
+        console.warn("[DysAssist] Error communicating with background service worker:", chrome.runtime.lastError.message);
+        return;
+      }
+
+      if (response && response.ok && response.plan) {
+        const plan = response.plan;
+        console.log("[DysAssist] Scorer & Decision Plan received:", plan);
+        
+        // Re-run processPage with the updated profile data (which background script just saved)
+        processPage();
+
+        // If decision agent wants to offer a tier, show the banner
+        if (plan.offer && window.DysAssistNotify) {
+          if (!window.DysAssistNotify.isShowing()) {
+            window.DysAssistNotify.offer(plan.offer);
+          }
+        }
+      }
+    });
+  }, 30000);
+})();
