@@ -52,6 +52,8 @@ const rulerHeightVal = document.getElementById("ruler-height-val");
 const rulerOpacitySlider = document.getElementById("ruler-opacity-slider");
 const rulerOpacityVal = document.getElementById("ruler-opacity-val");
 const rulerModeSelect = document.getElementById("ruler-mode-select");
+const rulerColorPicker = document.getElementById("ruler-color-picker");
+const rulerColorHex = document.getElementById("ruler-color-hex");
 
 // Focus Mode controls
 const focusToggle = document.getElementById("focus-toggle");
@@ -75,37 +77,187 @@ const ttsPitchVal = document.getElementById("tts-pitch-val");
 const ttsHighlightToggle = document.getElementById("tts-highlight-toggle");
 const ttsTestBtn = document.getElementById("tts-test-btn");
 
-// Helpers to get/set Chrome local storage
+// ── Week 5 — Honnashree: error states, toasts, storage-failure handling ─────
+
+const storageErrorBanner = document.getElementById("storage-error-banner");
+const storageErrorDetail = document.getElementById("storage-error-detail");
+const restrictedPageBanner = document.getElementById("restricted-page-banner");
+const toastStack = document.getElementById("toast-stack");
+
+function showToast(message, kind = "info", durationMs = 3200) {
+  if (!toastStack) return;
+  const el = document.createElement("div");
+  el.className = `toast ${kind === "error" ? "toast-error" : kind === "success" ? "toast-success" : ""}`;
+  const icon = kind === "error" ? "⚠️" : kind === "success" ? "✅" : "ℹ️";
+  el.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  toastStack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 200);
+  }, durationMs);
+}
+
+function showStorageError(detail) {
+  if (storageErrorDetail && detail) storageErrorDetail.textContent = detail;
+  if (storageErrorBanner) storageErrorBanner.classList.add("visible");
+}
+
+function clearStorageError() {
+  if (storageErrorBanner) storageErrorBanner.classList.remove("visible");
+}
+
+// Week 5 — tracks whether the *last* getProfile() call genuinely found "no profile"
+// versus failed to read storage at all. init() uses this so a transient storage
+// error can never be mistaken for a first-install and silently overwrite real data.
+let lastProfileReadFailed = false;
+
+// Helpers to get/set Chrome local storage — Week 5: wrapped with real error handling
+// instead of silently resolving null/undefined on failure.
 function getProfile() {
-  return new Promise(resolve => {
-    if (typeof chrome !== "undefined" && chrome.storage) {
-      chrome.storage.local.get(PROFILE_KEY, result => {
-        resolve(result[PROFILE_KEY] ?? null);
-      });
-    } else {
-      const local = localStorage.getItem(PROFILE_KEY);
-      resolve(local ? JSON.parse(local) : null);
+  return new Promise((resolve) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage) {
+        chrome.storage.local.get(PROFILE_KEY, (result) => {
+          if (chrome.runtime.lastError) {
+            lastProfileReadFailed = true;
+            showStorageError(chrome.runtime.lastError.message || "Could not read your saved settings.");
+            resolve(null);
+            return;
+          }
+          lastProfileReadFailed = false;
+          clearStorageError();
+          resolve(result[PROFILE_KEY] ?? null);
+        });
+      } else {
+        const local = localStorage.getItem(PROFILE_KEY);
+        lastProfileReadFailed = false;
+        resolve(local ? JSON.parse(local) : null);
+      }
+    } catch (err) {
+      lastProfileReadFailed = true;
+      showStorageError(err?.message || "Could not read your saved settings.");
+      resolve(null);
     }
   });
 }
 
 function saveProfile(profile) {
-  return new Promise(resolve => {
-    if (typeof chrome !== "undefined" && chrome.storage) {
-      chrome.storage.local.set({ [PROFILE_KEY]: profile }, () => {
-        resolve();
-      });
-    } else {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      resolve();
+  return new Promise((resolve) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage) {
+        chrome.storage.local.set({ [PROFILE_KEY]: profile }, () => {
+          if (chrome.runtime.lastError) {
+            showStorageError(chrome.runtime.lastError.message || "Couldn't save your changes. They may be lost if you close this popup.");
+            resolve(false);
+            return;
+          }
+          clearStorageError();
+          resolve(true);
+        });
+      } else {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        resolve(true);
+      }
+    } catch (err) {
+      // Most likely QUOTA_BYTES_PER_ITEM exceeded, or storage disabled by policy
+      showStorageError(err?.message || "Couldn't save your changes — storage may be full.");
+      resolve(false);
     }
   });
 }
 
+// ── Week 5 — Restricted-page detection ───────────────────────────────────────
+// Content scripts (and therefore all live adaptations) cannot run on chrome://,
+// chrome-extension://, the Web Store, or local file:// pages without extra
+// permissions. Detect this so the popup can say so honestly instead of the
+// toggles looking broken.
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  return (
+    url.startsWith("chrome://") ||
+    url.startsWith("chrome-extension://") ||
+    url.startsWith("edge://") ||
+    url.startsWith("about:") ||
+    url.startsWith("https://chrome.google.com/webstore") ||
+    url.startsWith("https://chromewebstore.google.com") ||
+    (url.startsWith("file://") && !url.endsWith(".html"))
+  );
+}
+
+async function checkRestrictedPage() {
+  if (typeof chrome === "undefined" || !chrome.tabs) return;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const restricted = isRestrictedUrl(tab?.url);
+    if (restrictedPageBanner) restrictedPageBanner.classList.toggle("visible", restricted);
+  } catch {
+    // If we can't even query tabs, don't block the rest of the popup on it
+  }
+}
+
+// Week 5 — Same shape as the normal default profile, used only when storage
+// itself is unreachable so the popup can still render something sensible
+// without ever writing it back to (possibly still-broken) storage.
+function buildInMemoryFallbackProfile() {
+  return {
+    version: 1,
+    mode: "declared_dyslexic",
+    difficultyScore: 0.8,
+    preferences: {
+      font: "lexend",
+      backgroundTint: "cream",
+      lineHeight: "1.7",
+      letterSpacing: "0.045em",
+      overlayOpacity: 0.18,
+      applyImmediately: true,
+      readingModeEnabled: false,
+      overlayToggleOn: true,
+      chunkingEnabled: false,
+      chunkMaxSentences: 3,
+      rulerEnabled: false,
+      rulerHeight: 36,
+      rulerOpacity: 0.12,
+      rulerColor: "#0082f0",
+      rulerMode: "follow",
+      focusEnabled: false,
+      focusStyle: "both",
+      focusBlur: 4,
+      focusDimOpacity: 0.55,
+      focusTransition: 220,
+      ttsEnabled: false,
+      ttsRate: 1.0,
+      ttsPitch: 1.0,
+      ttsVoiceURI: "",
+      ttsHighlight: true
+    },
+    domainSettings: [],
+    interventionHistory: {},
+    sessionHistory: [],
+    domainStats: {},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
 // Initializer
 async function init() {
+  checkRestrictedPage();
+
   currentProfile = await getProfile();
-  
+
+  if (!currentProfile && lastProfileReadFailed) {
+    // Week 5 — storage genuinely failed to respond (not "no profile yet").
+    // Use an in-memory default so the popup is still usable, but do NOT
+    // persist it — that would risk clobbering a real profile once storage
+    // recovers. The error banner stays visible so the user knows why.
+    currentProfile = buildInMemoryFallbackProfile();
+    render(currentProfile);
+    checkAiStatus();
+    revealPopup();
+    return;
+  }
+
   if (!currentProfile) {
     // Fallback default profile structure
     currentProfile = {
@@ -166,6 +318,7 @@ async function init() {
     if (prefs.ttsPitch === undefined) { prefs.ttsPitch = 1.0; updated = true; }
     if (prefs.ttsVoiceURI === undefined) { prefs.ttsVoiceURI = ""; updated = true; }
     if (prefs.ttsHighlight === undefined) { prefs.ttsHighlight = true; updated = true; }
+    if (prefs.rulerColor === undefined) { prefs.rulerColor = "#0082f0"; updated = true; }
     if (updated) {
       currentProfile.preferences = prefs;
       await saveProfile(currentProfile);
@@ -173,6 +326,17 @@ async function init() {
   }
 
   render(currentProfile);
+  checkAiStatus();
+  revealPopup();
+}
+
+// Week 5 — swap the loading skeleton for the real UI once init() has data
+// (or has definitively failed to get any, so the user isn't stuck on a spinner).
+function revealPopup() {
+  const loading = document.getElementById("popup-loading");
+  const container = document.getElementById("popup-container");
+  if (loading) loading.style.display = "none";
+  if (container) container.style.display = "flex";
 }
 
 // Render values into DOM
@@ -295,6 +459,11 @@ function render(profile) {
   rulerOpacityVal.textContent = `${Math.round(rulerOpacity * 100)}%`;
 
   rulerModeSelect.value = prefs.rulerMode ?? "follow";
+
+  // Week 5 — Ruler Color
+  const rulerColor = prefs.rulerColor ?? "#0082f0";
+  if (rulerColorPicker) rulerColorPicker.value = rulerColor;
+  if (rulerColorHex) rulerColorHex.textContent = rulerColor;
 
   // Focus Mode
   focusToggle.checked = !!prefs.focusEnabled;
@@ -594,6 +763,22 @@ rulerModeSelect.addEventListener("change", async (e) => {
   render(currentProfile);
 });
 
+// Week 5 — Ruler Color Event Listener (settings completeness fix: this
+// preference existed in the data model since Week 2 but had no UI control)
+if (rulerColorPicker) {
+  rulerColorPicker.addEventListener("input", (e) => {
+    if (rulerColorHex) rulerColorHex.textContent = e.target.value;
+  });
+
+  rulerColorPicker.addEventListener("change", async (e) => {
+    currentProfile.preferences.rulerColor = e.target.value;
+    currentProfile.updatedAt = new Date().toISOString();
+    const ok = await saveProfile(currentProfile);
+    if (ok) showToast("Ruler color updated", "success", 1600);
+    render(currentProfile);
+  });
+}
+
 // Focus Mode Event Listeners
 focusToggle.addEventListener("change", async (e) => {
   currentProfile.preferences.focusEnabled = e.target.checked;
@@ -680,8 +865,17 @@ ttsVoiceSelect.addEventListener("change", async (e) => {
 ttsTestBtn.addEventListener("click", async () => {
   if (typeof chrome !== "undefined" && chrome.tabs) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (isRestrictedUrl(tab?.url)) {
+      showToast("Open a regular webpage first — DysAssist can't run here.", "error");
+      return;
+    }
     if (tab) {
-      chrome.tabs.sendMessage(tab.id, { type: "TTS_TEST" }).catch(() => {});
+      // Week 5 — was previously a silent .catch(() => {}), which made TTS
+      // look broken on any page where the content script hadn't loaded
+      // (e.g. page opened before the extension was installed/reloaded).
+      chrome.tabs.sendMessage(tab.id, { type: "TTS_TEST" }).catch(() => {
+        showToast("Couldn't reach this page — try refreshing it first.", "error");
+      });
     }
   }
 });
@@ -692,11 +886,15 @@ function populateTTSVoices(selectedURI) {
 
   if (typeof chrome !== "undefined" && chrome.tabs && chrome.scripting) {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (!tab) return;
+      if (!tab || isRestrictedUrl(tab.url)) return;
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => speechSynthesis.getVoices().map(v => ({ name: v.name, uri: v.voiceURI, lang: v.lang }))
       }, (results) => {
+        // Week 5 — chrome.scripting.executeScript reports failures via
+        // chrome.runtime.lastError, not a thrown exception or rejected
+        // promise, so this previously failed silently on CSP-strict sites.
+        if (chrome.runtime.lastError) return;
         const voices = results?.[0]?.result || [];
         if (!voices.length) return;
 
@@ -1040,11 +1238,93 @@ function cssEscapeAttr(str) {
   return str; // used only inside [data-x="..."] attribute selectors, safe as-is
 }
 
+// =============================================================================
+// WEEK 5 — Honnashree: offline / no-API-key fallback for Manoj's Gemini backend
+// =============================================================================
+//
+// The /simplify and /define features (server/index.js) depend on a locally
+// running proxy server and, for real AI output, a configured GEMINI_API_KEY.
+// Neither is guaranteed to be present — the server might not be running, the
+// user might be offline, or USE_GEMINI might be false (mock mode). Rather
+// than let those features fail silently or look broken, this checks reachability
+// up front and tells the user plainly what mode they're in. Tier 1 (typography)
+// and Tier 2 (structural: chunking, ruler, focus mode) never depend on this and
+// keep working regardless — this banner only concerns the AI-simplify layer.
+
+const AI_HEALTH_URL = "http://127.0.0.1:8787/health";
+const AI_HEALTH_TIMEOUT_MS = 2500;
+
+const aiStatusDot = document.getElementById("ai-status-dot");
+const aiStatusSub = document.getElementById("ai-status-sub");
+const aiStatusRetry = document.getElementById("ai-status-retry");
+
+function setAiStatus(state, subtext) {
+  if (aiStatusDot) aiStatusDot.className = `ai-status-dot ${state}`;
+  if (aiStatusSub) aiStatusSub.textContent = subtext;
+}
+
+async function checkAiStatus() {
+  setAiStatus("checking", "Checking…");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_HEALTH_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(AI_HEALTH_URL, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      setAiStatus("offline", "Backend unreachable — Tier 1 & 2 still work");
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.mode === "gemini" && data.geminiConfigured) {
+      setAiStatus("online", "Live — simplify & define ready");
+    } else {
+      // Server is up but running in mock mode (no API key / USE_GEMINI=false)
+      setAiStatus("offline", "No API key set — using local mock responses");
+    }
+  } catch (err) {
+    clearTimeout(timer);
+    // Covers: server not running, offline, timed out, CORS blocked, etc.
+    // This is expected in most dev/demo setups, so this is a neutral
+    // "offline" state, not an alarming error banner.
+    setAiStatus("offline", "Offline — typography & structure features still work");
+  }
+}
+
+if (aiStatusRetry) {
+  aiStatusRetry.addEventListener("click", checkAiStatus);
+}
+
 // Kick off current-domain detection once popup opens
 detectCurrentDomain();
 
 // Initialize popup logic on document ready
-document.addEventListener("DOMContentLoaded", init);
+// Week 5 — wrapped so an unexpected error during init() can never leave the
+// user staring at an infinite loading spinner with no explanation.
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await init();
+  } catch (err) {
+    console.error("[DysAssist] popup init failed:", err);
+    showStorageError("Something went wrong loading your settings. Try closing and reopening this popup.");
+    revealPopup();
+  }
+});
+
+// Hard safety net: if init() somehow never resolves within 5s (should not
+// happen, but a hung chrome.storage callback is not impossible), reveal the
+// popup anyway rather than leaving a spinner running forever.
+setTimeout(() => {
+  const loading = document.getElementById("popup-loading");
+  if (loading && loading.style.display !== "none") {
+    revealPopup();
+    showToast("Taking longer than expected to load — some data may be stale.", "error");
+  }
+}, 5000);
 
 if (typeof chrome !== "undefined" && chrome.storage) {
   chrome.storage.onChanged.addListener((changes, namespace) => {
