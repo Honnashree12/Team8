@@ -11,6 +11,8 @@ const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
 const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 30);
 const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const useGemini = process.env.USE_GEMINI === "true";
+const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const useGroq = process.env.USE_GROQ === "true";
 const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 const requestBuckets = new Map();
 
@@ -42,22 +44,35 @@ app.use(rateLimit);
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    mode: useGemini ? "gemini" : "mock",
-    geminiConfigured: Boolean(process.env.GEMINI_API_KEY)
+    mode: useGroq ? "groq" : (useGemini ? "gemini" : "mock"),
+    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    groqConfigured: Boolean(process.env.GROQ_API_KEY)
   });
 });
 
 app.post("/simplify", async (req, res, next) => {
   try {
     const text = normalizeText(req.body?.text);
-    const result = useGemini ? await callGemini([
-      "Rewrite the text in dyslexia-friendly plain language.",
-      "Keep the original meaning, use shorter sentences, and return only the rewritten text.",
-      "",
-      text
-    ].join("\n")) : mockSimplify(text);
+    let result;
+    if (useGroq) {
+      const system =
+        "You are a plain-English writing assistant. " +
+        "Rewrite complex text so it is clear and easy to read at a grade 6–8 level. " +
+        "Keep all key information. " +
+        "Return ONLY the rewritten text — no preamble, no labels, no commentary.";
+      result = await callGroq(system, text, 600);
+    } else if (useGemini) {
+      result = await callGemini([
+        "Rewrite the text in dyslexia-friendly plain language.",
+        "Keep the original meaning, use shorter sentences, and return only the rewritten text.",
+        "",
+        text
+      ].join("\n"));
+    } else {
+      result = mockSimplify(text);
+    }
 
-    res.json({ result, mocked: !useGemini });
+    res.json({ result, mocked: !useGemini && !useGroq });
   } catch (error) {
     next(error);
   }
@@ -67,12 +82,33 @@ app.post("/define", async (req, res, next) => {
   try {
     const term = normalizeText(req.body?.term || req.body?.text, 200);
     const context = req.body?.context ? normalizeText(req.body.context, 1200) : "";
-    const result = useGemini ? await callGemini([
-      "Define the term for a dyslexic reader.",
-      "Use simple words, one short example, and return only the definition.",
-      context ? `Context: ${context}` : "",
-      `Term: ${term}`
-    ].filter(Boolean).join("\n")) : mockDefine(term, context);
+
+    let result;
+    if (useGemini) {
+      try {
+        result = await callGemini([
+          "Define the term for a dyslexic reader.",
+          "Use simple words, one short example, and return only the definition.",
+          context ? `Context: ${context}` : "",
+          `Term: ${term}`
+        ].filter(Boolean).join("\n"));
+      } catch (error) {
+        console.warn("Gemini define failed, falling back to Free Dictionary API:", error.message);
+        try {
+          result = await fetchFreeDictionary(term);
+        } catch (fallbackError) {
+          console.warn("Free Dictionary API fallback failed:", fallbackError.message);
+          result = mockDefine(term, context);
+        }
+      }
+    } else {
+      try {
+        result = await fetchFreeDictionary(term);
+      } catch (error) {
+        console.warn("Free Dictionary API failed, falling back to mock definition:", error.message);
+        result = mockDefine(term, context);
+      }
+    }
 
     res.json({ result, mocked: !useGemini });
   } catch (error) {
@@ -167,6 +203,108 @@ function mockDefine(term, context) {
   const trimmedTerm = term.replace(/[.?!:;]+$/g, "");
   const contextHint = context ? " The meaning can depend on the page context." : "";
   return `${trimmedTerm} means an important word or idea in this text.${contextHint}`;
+}
+
+async function fetchFreeDictionary(word) {
+  if (!word || word.trim().length < 2) {
+    throw new Error("Word too short");
+  }
+
+  const clean = word.toLowerCase().replace(/[^a-z'-]/g, "");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean)}`,
+      {
+        headers: { "Accept": "application/json" },
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Free Dictionary API returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const entry = data?.[0];
+    if (!entry) {
+      throw new Error("No entry found");
+    }
+
+    const meaning = entry.meanings?.[0];
+    const def = meaning?.definitions?.[0];
+    if (!def?.definition) {
+      throw new Error("No definition found");
+    }
+
+    const pos = meaning.partOfSpeech ? `(${meaning.partOfSpeech}) ` : "";
+    const example = def.example ? ` — e.g. "${def.example}"` : "";
+    const phonetic = entry.phonetic ? ` ${entry.phonetic}` : "";
+
+    return `${phonetic ? phonetic + "  " : ""}${pos}${def.definition}${example}`;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function callGroq(systemPrompt, userContent, maxTokens = 600) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    const error = new Error("GROQ_API_KEY is not configured.");
+    error.status = 500;
+    throw error;
+  }
+
+  const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: groqModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.3
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data?.error?.message || "Groq request failed.");
+      error.status = response.status;
+      throw error;
+    }
+
+    const text = data?.choices?.[0]?.message?.content?.trim() || "";
+    if (!text) {
+      const error = new Error("Groq returned an empty response.");
+      error.status = 502;
+      throw error;
+    }
+
+    return text;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error("Groq request timed out.");
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function rateLimit(req, res, next) {

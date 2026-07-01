@@ -43,6 +43,7 @@ async function main() {
     assert.strictEqual(healthBody.ok, true);
     assert.strictEqual(healthBody.mode, "mock");
     assert.strictEqual(typeof healthBody.geminiConfigured, "boolean");
+    assert.strictEqual(typeof healthBody.groqConfigured, "boolean");
 
     const allowed = await request(server, "/health", {
       headers: { Origin: "chrome-extension://abc123" }

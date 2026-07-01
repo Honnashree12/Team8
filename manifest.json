@@ -30,6 +30,8 @@
         "focusMode.js",
         "ttsEngine.js",
         "notificationUI.js",
+        "vocabularyTooltips.js",
+        "simplifyText.js",
         "content.js"
       ],
       "run_at": "document_idle"

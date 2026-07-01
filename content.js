@@ -293,6 +293,8 @@ function removeReadingTheme() {
   window.DysAssistRuler?.disable();
   window.DysAssistFocus?.disable();
   window.DysAssistTTS?.stop();
+  window.DysAssistVocab?.reset();
+  window.DysAssistSimplify?.reset();
 }
 
 function shouldApplyReadingTheme(profile) {
@@ -527,6 +529,24 @@ async function processPage() {
     }
     // ── end Week 4 ────────────────────────────────────────────────────────
 
+    // Handle Vocabulary Tooltips Settings & Processing
+    if (profile.preferences) {
+      window.DysAssistVocab?.updateSettings(profile.preferences);
+      if (profile.preferences.vocabEnabled) {
+        window.DysAssistVocab?.enable();
+      } else {
+        window.DysAssistVocab?.reset();
+      }
+    }
+
+    // Handle AI Simplify text selection listener
+    if (profile.preferences) {
+      if (profile.preferences.applyImmediately !== false) {
+        window.DysAssistSimplify?.enable();
+      } else {
+        window.DysAssistSimplify?.disable();
+      }
+    }
   } finally {
     isApplyingChanges = false;
     if (observer) {
