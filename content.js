@@ -625,6 +625,14 @@ async function processPage() {
       } else {
         window.DysAssistSimplify?.disable();
       }
+
+      // Adaptive tier-3: auto-highlight the hardest paragraph with a one-click
+      // "Simplify this paragraph" chip when the decision agent turns it on.
+      if (profile.preferences.simplifySuggestEnabled && profile.preferences.applyImmediately !== false) {
+        window.DysAssistSimplify?.suggestHardest();
+      } else {
+        window.DysAssistSimplify?.clearSuggestion();
+      }
     }
   } finally {
     isApplyingChanges = false;

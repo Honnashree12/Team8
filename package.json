@@ -4,7 +4,8 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --check server/index.js && node --check background.js && node --check content.js && node tests/server-smoke.js"
+    "calibrate": "node tools/calibrate.js",
+    "test": "node --check server/index.js && node --check background.js && node --check content.js && node --check adaptiveEngine.js && node --check signalCollector.js && node --check wordFrequencyData.js && node tests/server-smoke.js && node tests/adaptive-smoke.js && node tools/calibrate.js"
   },
   "keywords": [],
   "author": "",

@@ -46,6 +46,17 @@ export interface ReadingPreferences {
   focusBlur: number;
   focusDimOpacity: number;
   focusTransition: number;
+  // Optional fields set by the popup / adaptive engine at runtime.
+  vocabEnabled?: boolean;
+  vocabTopN?: number;
+  ttsRate?: number;
+  ttsPitch?: number;
+  ttsVoiceURI?: string;
+  ttsHighlight?: boolean;
+  readingModeEnabled?: boolean;
+  overlayOpacity?: number;
+  /** Adaptive tier-3: auto-highlight + one-click simplify the hardest paragraph. */
+  simplifySuggestEnabled?: boolean;
 }
 
 export interface FeatureVector {
@@ -67,6 +78,8 @@ export interface UserProfile {
   sessionHistory: SessionSummary[];
   interventionHistory: Record<string, InterventionRecord>;
   domainSettings: DomainSetting[];
+  /** Adaptive-engine state: learned weights, auto-applied set, suppressions. */
+  adaptive?: AdaptiveProfileState;
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +108,115 @@ export interface DomainSetting {
   applyImmediately: boolean;
   sensitivityOverride: number | null;
   sessionCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Adaptive engine contracts (Saanvi — difficulty model + decision agent).
+// The runtime implementation lives in adaptiveEngine.js; these interfaces are
+// the shared, typed source of truth referenced by the model/agent modules.
+// ---------------------------------------------------------------------------
+
+/** Signals that make up the interpretable difficulty scorer (weights sum to 1). */
+export interface FeatureWeights {
+  vocabularyDifficultyIndex: number;
+  regressionRate: number;
+  slowReading: number;
+  copyLookupFrequency: number;
+  lowCompletion: number;
+}
+
+/** The 0.3 / 0.5 / 0.7 tier cut-points, calibrated on synthetic pages. */
+export interface DecisionThresholds {
+  tier1: number;
+  tier2: number;
+  tier3: number;
+}
+
+export type DomainClass = 'academic' | 'news' | 'general' | 'social';
+
+export interface PlannedIntervention {
+  type: InterventionType;
+  tier: InterventionTier;
+  prefPatch: Partial<ReadingPreferences>;
+  label: string;
+  reason: string;
+}
+
+/** Output of the decision agent for a given score + context. */
+export interface InterventionPlan {
+  score: number;
+  effectiveScore: number;
+  domainClass: DomainClass;
+  sensitivity: number;
+  thresholds: DecisionThresholds;
+  tier: 0 | 1 | 2 | 3;
+  target: PlannedIntervention[];
+  prefPatch: Partial<ReadingPreferences>;
+  newInterventions: PlannedIntervention[];
+}
+
+/** Context the decision agent needs beyond the raw score. */
+export interface DecisionContext {
+  domain: string;
+  alreadyApplied: InterventionType[];
+  mode?: OnboardingMode;
+  sensitivity?: number;
+  thresholdOffset?: number;
+}
+
+export type FeedbackDecision = 'accept' | 'dismiss' | 'ignore';
+
+export interface FeedbackEvent {
+  type: FeedbackDecision;
+  domain: string;
+  interventions?: InterventionType[];
+  dwellMsBeforeFeedback?: number;
+  scoreAtTime?: number;
+}
+
+/** Learned state adjusted by feedback over time. */
+export interface LearnState {
+  /** Global caution: raised by dismissals, lowered by accepts. */
+  thresholdOffset: number;
+  /** Per-domain-class aggressiveness multipliers. */
+  domainSensitivity: Partial<Record<DomainClass, number>>;
+  /** Optional online-adjusted feature weights (defaults to FEATURE_WEIGHTS). */
+  weights?: FeatureWeights;
+  falsePositives: number;
+  accepts: number;
+  dismisses: number;
+}
+
+export interface ScoreSample {
+  score: number;
+  raw: number;
+  tier: number;
+  domain: string;
+  ts: number;
+}
+
+export interface AdaptiveProfileState {
+  learn: LearnState;
+  /** Interventions the agent turned on (vs. user-set): type -> metadata. */
+  autoApplied: Record<string, { tier: InterventionTier; ts: number; domain: string; coldStart?: boolean }>;
+  /** Interventions the user dismissed, per domain, so we stop nagging. */
+  suppressed: Record<string, Partial<Record<InterventionType, boolean>>>;
+  lastTier: number;
+  falsePositiveLog?: Array<{
+    interventions: InterventionType[];
+    domain: string;
+    scoreAtTime?: number;
+    dwellMs?: number;
+    ts: number;
+  }>;
+  archivedToIDB?: boolean;
+}
+
+/** Bulk rolling telemetry persisted separately (may migrate to IndexedDB > 1MB). */
+export interface AdaptiveTelemetry {
+  featureHistory: FeatureVector[];
+  scoreHistory: ScoreSample[];
+  archivedToIDB?: boolean;
 }
 
 export function createDefaultProfile(

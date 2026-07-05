@@ -1,150 +1,93 @@
 // signalCollector.ts
-// Runs on every webpage. Watches what the user does while reading.
-// This week: just logs to console. Next week: feeds into the scorer.
+// Typed reference for the reading-signal collector (Weeks 1-2).
+// The shipped runtime is signalCollector.js (a content script); this file is the
+// canonical, typed specification of the same collection + feature-derivation.
+//
+// Week 1: log scroll / hover / regression events.                    [done]
+// Week 2: real IntersectionObserver dwell, regression detector, hover
+//         dwell, copy + lookup events; convert to a FeatureVector every 30s;
+//         hand it to the service worker, which persists it to chrome.storage. [done]
+
+import type { FeatureVector } from '../shared/types';
+import { getDifficultyIndex } from '../data/wordFrequency';
 
 const CONFIG = {
-  SCROLL_SAMPLE_MS: 100,
+  SCROLL_SAMPLE_MS: 150,
   REGRESSION_THRESHOLD_PERCENT: 15,
-  REGRESSION_TIME_WINDOW_MS: 3000,
-  MIN_SESSION_MS: 30000,
-  LOG_INTERVAL_MS: 10000,
+  REGRESSION_WINDOW_MS: 3000,
+  FEATURE_INTERVAL_MS: 30000, // derive + emit a FeatureVector every 30 seconds
+  MIN_PARA_WORDS: 12,
+  FAST_WPM: 400, // dwell shorter than this WPM implies "skimmed, not read"
 };
 
-// All raw data collected this session (lives in memory only)
-const signals = {
-  scrollPositions: [] as Array<{ y: number; timestamp: number }>,
+interface RawSignals {
+  sessionStart: number;
+  activeMs: number;
+  regressionCount: number;
+  totalWordsSeen: number;
+  wordsRead: number;
+  readingTimeSec: number;
+  paragraphsEntered: number;
+  paragraphsCompleted: number;
+  copyCount: number;
+  lookupCount: number;
+  hoverDurations: number[];
+}
+
+const signals: RawSignals = {
+  sessionStart: Date.now(),
+  activeMs: 0,
   regressionCount: 0,
-  paragraphDwellTimes: new Map<string, number>(),
-  wordHoverDurations: [] as number[],
+  totalWordsSeen: 0,
+  wordsRead: 0,
+  readingTimeSec: 0,
+  paragraphsEntered: 0,
+  paragraphsCompleted: 0,
   copyCount: 0,
   lookupCount: 0,
-  totalWordsSeen: 0,
-  sessionStart: Date.now(),
+  hoverDurations: [],
 };
 
-let lastScrollY = window.scrollY;
+/**
+ * Convert the accumulated raw signals into the derived FeatureVector that the
+ * difficulty model consumes. Called on a 30-second cadence.
+ */
+export function deriveFeatureVector(sampleText: string): FeatureVector {
+  const activeMin = Math.max(signals.activeMs / 60000, 1 / 60);
+  const readingSpeedWPM =
+    signals.readingTimeSec > 0
+      ? Math.round(signals.wordsRead / (signals.readingTimeSec / 60))
+      : 0;
+  const regressionRate =
+    signals.totalWordsSeen > 0
+      ? (signals.regressionCount / signals.totalWordsSeen) * 100
+      : 0;
+  const copyLookupFrequency = (signals.copyCount + signals.lookupCount) / activeMin;
+  const paragraphCompletionRate =
+    signals.paragraphsEntered > 0
+      ? signals.paragraphsCompleted / signals.paragraphsEntered
+      : 1;
 
-// SCROLL TRACKING — detects when user scrolls back up to re-read
-setInterval(() => {
-  const now = Date.now();
-  const currentY = window.scrollY;
-  const viewportH = window.innerHeight;
+  return {
+    readingSpeedWPM,
+    regressionRate: Number(regressionRate.toFixed(2)),
+    copyLookupFrequency: Number(copyLookupFrequency.toFixed(2)),
+    paragraphCompletionRate: Number(paragraphCompletionRate.toFixed(2)),
+    vocabularyDifficultyIndex: Number(getDifficultyIndex(sampleText).toFixed(3)),
+    sessionDurationSeconds: Math.round((Date.now() - signals.sessionStart) / 1000),
+    timestamp: Date.now(),
+    domain: typeof location !== 'undefined' ? location.hostname : '',
+  };
+}
 
-  signals.scrollPositions.push({ y: currentY, timestamp: now });
-
-  // Keep only last 30 seconds
-  signals.scrollPositions = signals.scrollPositions.filter(
-    p => p.timestamp > now - 30000
-  );
-
-  // Check for regression (scrolled down, now scrolling back up)
-  const recent = signals.scrollPositions.filter(
-    p => p.timestamp > now - CONFIG.REGRESSION_TIME_WINDOW_MS
-  );
-
-  if (recent.length >= 2) {
-    const firstRecent = recent[0];
-    if (!firstRecent) return;
-
-    const threshold = (CONFIG.REGRESSION_THRESHOLD_PERCENT / 100) * viewportH;
-    const wentDown = currentY > firstRecent.y;
-    const nowGoingUp = currentY < lastScrollY - threshold;
-
-    if (!wentDown && nowGoingUp) {
-      signals.regressionCount++;
-      console.log(`[SignalCollector] 🔄 Regression! Total: ${signals.regressionCount}`);
-    }
+/** Emit the derived vector to the service worker for scoring + persistence. */
+export function emitFeatureVector(sampleText: string): void {
+  const fv = deriveFeatureVector(sampleText);
+  try {
+    chrome.runtime.sendMessage({ type: 'FEATURE_SNAPSHOT', payload: fv });
+  } catch {
+    // Extension context may be invalidated during navigation — safe to ignore.
   }
+}
 
-  lastScrollY = currentY;
-}, CONFIG.SCROLL_SAMPLE_MS);
-
-
-// PARAGRAPH OBSERVER — measures how long each paragraph is on screen
-const paragraphs = document.querySelectorAll('p');
-const enterTimes = new Map<string, number>();
-
-paragraphs.forEach((el, i) => {
-  const words = (el.textContent ?? '').split(/\s+/).filter(Boolean).length;
-  if (words < 10) return; // skip tiny paragraphs
-
-  const id = `para-${i}`;
-  el.dataset.saanviId = id;
-  signals.totalWordsSeen += words;
-
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        enterTimes.set(id, Date.now());
-        console.log(`[SignalCollector] 👁 Entered: ${id} (${words} words)`);
-      } else {
-        const entered = enterTimes.get(id);
-        if (entered) {
-          const dwell = Date.now() - entered;
-          signals.paragraphDwellTimes.set(id, dwell);
-          console.log(`[SignalCollector] 📖 Left: ${id} — visible for ${(dwell/1000).toFixed(1)}s`);
-        }
-      }
-    });
-  }, { threshold: 0.5 });
-
-  observer.observe(el);
-});
-
-
-// COPY TRACKING — user copies text (maybe pasting to translator)
-document.addEventListener('copy', () => {
-  signals.copyCount++;
-  const selected = window.getSelection()?.toString() ?? '';
-  console.log(`[SignalCollector] 📋 Copy #${signals.copyCount}: "${selected.slice(0, 40)}..."`);
-});
-
-
-// LOOKUP TRACKING — user right-clicks on selected text (word lookup)
-document.addEventListener('contextmenu', () => {
-  const selected = window.getSelection()?.toString().trim() ?? '';
-  if (selected.length > 0) {
-    signals.lookupCount++;
-    console.log(`[SignalCollector] 🔎 Lookup #${signals.lookupCount}: "${selected}"`);
-  }
-});
-
-
-// TAB SWITCH TRACKING — quick return = frustration signal
-let tabLeft: number | null = null;
-let quickReturns = 0;
-
-window.addEventListener('blur', () => { tabLeft = Date.now(); });
-window.addEventListener('focus', () => {
-  if (tabLeft) {
-    const away = Date.now() - tabLeft;
-    if (away < 10000) {
-      quickReturns++;
-      console.log(`[SignalCollector] 🔁 Quick tab return (${(away/1000).toFixed(1)}s away)`);
-    }
-    tabLeft = null;
-  }
-});
-
-
-// FEATURE SNAPSHOT — log a summary every 10 seconds
-setInterval(() => {
-  const duration = (Date.now() - signals.sessionStart) / 1000;
-  if (duration < 30) return;
-
-  const wpm = signals.totalWordsSeen / (duration / 60);
-  const regrPer100 = signals.totalWordsSeen > 0
-    ? (signals.regressionCount / signals.totalWordsSeen) * 100
-    : 0;
-
-  console.log('%c[SignalCollector] 📊 Snapshot', 'background:#534AB7;color:white;padding:2px 6px', {
-    readingSpeedWPM: Math.round(wpm),
-    regressionsPer100Words: regrPer100.toFixed(2),
-    copies: signals.copyCount,
-    lookups: signals.lookupCount,
-    sessionSeconds: Math.round(duration),
-  });
-}, CONFIG.LOG_INTERVAL_MS);
-
-console.log('%c[SignalCollector] 🚀 Running on ' + location.hostname,
-  'background:#1D9E75;color:white;padding:2px 8px;font-weight:bold');
+export { CONFIG, signals };

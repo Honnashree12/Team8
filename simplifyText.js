@@ -16,6 +16,12 @@ window.DysAssistSimplify = (() => {
   let activeBox = null;
   let autoHideTimeout = null;
 
+  // Adaptive tier-3: auto-suggested "hardest paragraph" state.
+  const SUGGEST_ID = "da-simplify-suggest";
+  let suggestedEl = null;
+  let suggestChip = null;
+  let suggestedText = "";
+
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement("style");
@@ -260,6 +266,141 @@ window.DysAssistSimplify = (() => {
     }
   }
 
+  // --- Adaptive tier-3: auto-suggest simplifying the hardest paragraph ------
+
+  function findHardestParagraph() {
+    const wf = window.DysAssistWordFreq;
+    if (!wf) return null;
+    const candidates = document.querySelectorAll("p, article li");
+    let best = null;
+    let bestScore = 0;
+    candidates.forEach((el) => {
+      if (el.closest("#" + BOX_ID + ", #dysassist-reader-view, #dysassist-adaptive-toast")) return;
+      if (el.querySelector("#" + SUGGEST_ID)) return;
+      const text = (el.innerText || "").trim();
+      const words = text.split(/\s+/).filter(Boolean).length;
+      if (words < 25 || text.length > 2000) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 120 || rect.height < 10) return; // skip hidden / tiny
+      const score = wf.getDifficultyIndex(text);
+      if (score > bestScore) {
+        bestScore = score;
+        best = el;
+      }
+    });
+    // Only bother if the paragraph is genuinely hard.
+    if (best && bestScore >= 0.25) return { el: best, score: bestScore, text: (best.innerText || "").trim() };
+    return null;
+  }
+
+  function styleImportant(el, styles) {
+    Object.keys(styles).forEach((k) => el.style.setProperty(k, styles[k], "important"));
+  }
+
+  function runSuggestSimplify() {
+    if (!suggestedEl || !suggestChip) return;
+    const rect = suggestedEl.getBoundingClientRect();
+    suggestChip.textContent = "⏳ Simplifying…";
+    suggestChip.style.setProperty("pointer-events", "none", "important");
+    chrome.runtime.sendMessage(
+      { type: "SIMPLIFY_TEXT", payload: { text: suggestedText } },
+      (res) => {
+        if (res && res.ok && res.result) {
+          showSimplifiedOverlay(suggestedText, res.result, rect);
+        } else {
+          const errMsg = (res && res.error) || "Unknown server error.";
+          showSimplifiedOverlay(
+            suggestedText,
+            `⚠️ Simplification failed: ${errMsg}\n\nPlease make sure the local server is running.`,
+            rect
+          );
+        }
+        if (suggestChip) {
+          suggestChip.textContent = "✨ Simplify this paragraph";
+          suggestChip.style.setProperty("pointer-events", "auto", "important");
+        }
+      }
+    );
+  }
+
+  function suggestHardest() {
+    // Keep an existing, still-attached suggestion in place.
+    if (suggestedEl && document.contains(suggestedEl)) return;
+    clearSuggestion();
+
+    const found = findHardestParagraph();
+    if (!found) return;
+
+    injectStyles();
+    suggestedEl = found.el;
+    suggestedText = found.text;
+    suggestedEl.setAttribute("data-da-hard", "true");
+    styleImportant(suggestedEl, {
+      background: "rgba(0,130,240,0.06)",
+      "box-shadow": "inset 3px 0 0 #0082f0",
+      "border-radius": "4px",
+      "padding-left": "12px",
+      transition: "background .2s ease"
+    });
+
+    const chip = document.createElement("span");
+    chip.id = SUGGEST_ID;
+    chip.setAttribute("role", "button");
+    chip.setAttribute("tabindex", "0");
+    chip.setAttribute("aria-label", "Simplify this paragraph");
+    chip.textContent = "✨ Simplify this paragraph";
+    // Inline !important beats the reading-theme stylesheet, so the chip keeps
+    // its own look regardless of the page theme.
+    styleImportant(chip, {
+      display: "inline-block",
+      "margin-left": "8px",
+      "margin-top": "4px",
+      background: "#0082f0",
+      color: "#ffffff",
+      "font-family": "'Lexend', system-ui, sans-serif",
+      "font-size": "12px",
+      "font-weight": "600",
+      "line-height": "1.4",
+      "letter-spacing": "normal",
+      padding: "3px 10px",
+      "border-radius": "999px",
+      cursor: "pointer",
+      "box-shadow": "0 2px 8px rgba(0,130,240,.35)",
+      "vertical-align": "middle",
+      "user-select": "none",
+      "white-space": "nowrap"
+    });
+    suggestedEl.appendChild(document.createTextNode(" "));
+    suggestedEl.appendChild(chip);
+    suggestChip = chip;
+
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      runSuggestSimplify();
+    });
+    chip.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        runSuggestSimplify();
+      }
+    });
+  }
+
+  function clearSuggestion() {
+    if (suggestChip) {
+      suggestChip.remove();
+      suggestChip = null;
+    }
+    if (suggestedEl) {
+      suggestedEl.removeAttribute("data-da-hard");
+      ["background", "box-shadow", "border-radius", "padding-left", "transition"].forEach((p) =>
+        suggestedEl.style.removeProperty(p)
+      );
+      suggestedEl = null;
+    }
+    suggestedText = "";
+  }
+
   function enable() {
     if (isEnabled) return;
     isEnabled = true;
@@ -276,8 +417,9 @@ window.DysAssistSimplify = (() => {
 
   function reset() {
     disable();
+    clearSuggestion();
     document.getElementById(STYLE_ID)?.remove();
   }
 
-  return { enable, disable, reset };
+  return { enable, disable, reset, suggestHardest, clearSuggestion };
 })();

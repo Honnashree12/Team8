@@ -1,3 +1,9 @@
+// Force deterministic mock mode so the smoke test never depends on a local
+// .env (USE_GROQ / USE_GEMINI + API keys). loadEnvFile() only fills vars that
+// are still undefined, so setting these before require() wins.
+process.env.USE_GROQ = "false";
+process.env.USE_GEMINI = "false";
+
 const assert = require("assert");
 const http = require("http");
 const { app, mockDefine, mockSimplify, normalizeText } = require("../server/index");
